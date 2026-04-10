@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coach — Dialed In Dads</title>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #0D1117;
+      color: #F0F4F8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .placeholder {
+      text-align: center;
+      padding: 40px 24px;
+    }
+    .placeholder h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1.5px;
+      color: #C1581A;
+      margin-bottom: 12px;
+    }
+    .placeholder p { color: #8892A4; font-size: 15px; margin-bottom: 24px; }
+    .coach-name { color: #F0F4F8; font-weight: 600; }
+    .sign-out-btn {
+      background: none;
+      border: 1px solid #1E2A3E;
+      border-radius: 8px;
+      padding: 10px 20px;
+      color: #8892A4;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .sign-out-btn:hover { border-color: #C1581A; color: #C1581A; }
+  </style>
+</head>
+<body>
+  <div class="placeholder">
+    <h1>Coach Dashboard</h1>
+    <p>Welcome, <span class="coach-name" id="coach-name">Coach</span>. Dashboard coming next.</p>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth.js"></script>
+  <script>
+    (async () => {
+      const session = await requireCoach();
+      if (!session) return;
+      const coach = await getCurrentCoach(session.user.id);
+      if (coach?.name) document.getElementById('coach-name').textContent = coach.name;
+    })();
+  </script>
+</body>
+</html>

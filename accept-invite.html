@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Welcome — Dialed In Dads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0D1117;
+      --surface:  #131B2E;
+      --border:   #1E2A3E;
+      --orange:   #C1581A;
+      --orange-hover: #D4651F;
+      --green:    #2ECC8A;
+      --text:     #F0F4F8;
+      --muted:    #8892A4;
+      --subtle:   #4A5568;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Brand */
+    .brand {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .brand-mark {
+      width: 56px;
+      height: 56px;
+      background: var(--orange);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-family: 'Anton', sans-serif;
+      font-size: 24px;
+      color: #fff;
+    }
+
+    .brand h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: 26px;
+      letter-spacing: 1.5px;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+
+    /* Welcome card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px;
+    }
+
+    .welcome-heading {
+      font-family: 'Anton', sans-serif;
+      font-size: 22px;
+      letter-spacing: 1px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .welcome-sub {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .welcome-sub strong {
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+
+    /* Section label */
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 14px;
+    }
+
+    /* Field */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 7px;
+    }
+
+    .field-hint {
+      font-size: 12px;
+      color: var(--subtle);
+      margin-top: 5px;
+    }
+
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 15px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+
+    input:focus { border-color: var(--orange); }
+    input::placeholder { color: var(--subtle); }
+
+    /* Starting weight row */
+    .input-unit {
+      position: relative;
+    }
+
+    .input-unit input {
+      padding-right: 48px;
+    }
+
+    .unit-badge {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    /* Error */
+    .error-msg {
+      display: none;
+      background: rgba(193, 88, 26, 0.12);
+      border: 1px solid rgba(193, 88, 26, 0.3);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 13px;
+      color: #E8834A;
+      margin-bottom: 16px;
+    }
+
+    /* Invalid token state */
+    .invalid-state {
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    .invalid-state .icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .invalid-state p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* Button */
+    .btn-primary {
+      width: 100%;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s, opacity 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-primary:hover  { background: var(--orange-hover); }
+    .btn-primary:active { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary.loading::after {
+      content: '';
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Success state */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    .success-icon {
+      width: 56px;
+      height: 56px;
+      background: rgba(46, 204, 138, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 24px;
+    }
+
+    .success-state h3 {
+      font-family: 'Anton', sans-serif;
+      font-size: 20px;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .success-state p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* Loading skeleton */
+    .loading-state {
+      text-align: center;
+      padding: 32px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+
+    <div class="brand">
+      <div class="brand-mark">DID</div>
+      <h1>Dialed In Dads</h1>
+    </div>
+
+    <div class="card" id="main-card">
+      <div class="loading-state" id="loading-state">Checking your invite...</div>
+
+      <!-- Invalid token -->
+      <div class="invalid-state" id="invalid-state" style="display:none">
+        <div class="icon">🔒</div>
+        <p>This invite link is invalid or has expired.<br>Ask your coach to send a new one.</p>
+      </div>
+
+      <!-- Onboarding form -->
+      <div id="form-state" style="display:none">
+        <div class="welcome-heading">Welcome aboard 👊</div>
+        <p class="welcome-sub">
+          You've been invited by <strong id="coach-name">your coach</strong>.<br>
+          Set your password and starting weight to get dialed in.
+        </p>
+
+        <div class="divider"></div>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <form id="onboard-form">
+          <div class="section-label">Your Login</div>
+
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="invite-email" readonly>
+          </div>
+
+          <div class="field">
+            <label for="password">Set a Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Min. 8 characters"
+              minlength="8"
+              autocomplete="new-password"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="confirm-password">Confirm Password</label>
+            <input
+              type="password"
+              id="confirm-password"
+              placeholder="Same password again"
+              autocomplete="new-password"
+              required
+            >
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="section-label">Starting Point</div>
+
+          <div class="field">
+            <label for="start-weight">Starting Weight</label>
+            <div class="input-unit">
+              <input
+                type="number"
+                id="start-weight"
+                placeholder="e.g. 82.5"
+                step="0.1"
+                min="30"
+                max="300"
+                required
+              >
+              <span class="unit-badge">kg</span>
+            </div>
+            <div class="field-hint">You can update this anytime during your daily check-in.</div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submit-btn">
+            Let's Go
+          </button>
+        </form>
+      </div>
+
+      <!-- Success -->
+      <div class="success-state" id="success-state">
+        <div class="success-icon">✓</div>
+        <h3>You're Dialed In</h3>
+        <p>Taking you to your dashboard...</p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js"></script>
+  <script>
+    let inviteData = null;
+
+    // ---- Load & validate invite token on page load ----
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const token  = params.get('token');
+
+      if (!token) { showState('invalid'); return; }
+
+      // Look up token in invites table
+      const { data: invite, error } = await db
+        .from('invites')
+        .select('*, coaches(name)')
+        .eq('token', token)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (error || !invite) { showState('invalid'); return; }
+
+      // Check not expired
+      if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+        showState('invalid'); return;
+      }
+
+      inviteData = invite;
+
+      // Prefill email & coach name
+      document.getElementById('invite-email').value = invite.email;
+      if (invite.coaches?.name) {
+        document.getElementById('coach-name').textContent = invite.coaches.name;
+      }
+
+      showState('form');
+    })();
+
+    // ---- Handle form submit ----
+    document.getElementById('onboard-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const password  = document.getElementById('password').value;
+      const confirm   = document.getElementById('confirm-password').value;
+      const weight    = parseFloat(document.getElementById('start-weight').value);
+      const btn       = document.getElementById('submit-btn');
+
+      // Validate passwords match
+      if (password !== confirm) {
+        showError("Passwords don't match — try again.");
+        return;
+      }
+
+      if (password.length < 8) {
+        showError('Password must be at least 8 characters.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btn.textContent = 'Setting up your account';
+
+      try {
+        // 1. Create auth account
+        const { data: authData, error: signUpError } = await db.auth.signUp({
+          email:    inviteData.email,
+          password: password,
+        });
+
+        if (signUpError) throw signUpError;
+
+        const userId = authData.user.id;
+
+        // 2. Create client record
+        const { data: client, error: clientError } = await db
+          .from('clients')
+          .insert({
+            auth_user_id: userId,
+            coach_id:     inviteData.coach_id,
+            email:        inviteData.email,
+            name:         inviteData.email.split('@')[0], // coach can update later
+            status:       'active',
+            phase:        'find_the_dial',
+          })
+          .select()
+          .single();
+
+        if (clientError) throw clientError;
+
+        // 3. Create first client_goals row with starting weight as target
+        const { error: goalsError } = await db
+          .from('client_goals')
+          .insert({
+            client_id:         client.id,
+            target_weight_kg:  weight,
+            effective_from:    new Date().toISOString().split('T')[0],
+          });
+
+        if (goalsError) throw goalsError;
+
+        // 4. Mark invite as accepted
+        await db
+          .from('invites')
+          .update({ status: 'accepted' })
+          .eq('id', inviteData.id);
+
+        // 5. Sign in (signUp may not auto-sign in if email confirmation is on)
+        const { error: signInError } = await db.auth.signInWithPassword({
+          email:    inviteData.email,
+          password: password,
+        });
+
+        if (signInError) throw signInError;
+
+        // 6. Show success, then redirect
+        showState('success');
+        setTimeout(() => goTo('/client/index.html'), 1800);
+
+      } catch (err) {
+        console.error(err);
+        showError(err.message || 'Something went wrong. Please try again.');
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.textContent = "Let's Go";
+      }
+    });
+
+    // ---- Helpers ----
+    function showState(state) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('invalid-state').style.display  = state === 'invalid' ? 'block' : 'none';
+      document.getElementById('form-state').style.display     = state === 'form'    ? 'block' : 'none';
+      document.getElementById('success-state').style.display  = state === 'success' ? 'block' : 'none';
+    }
+  </script>
+
+</body>
+</html>

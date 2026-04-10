@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Dialed In Dads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0D1117;
+      --surface:  #131B2E;
+      --border:   #1E2A3E;
+      --orange:   #C1581A;
+      --orange-hover: #D4651F;
+      --green:    #2ECC8A;
+      --blue:     #5B9BD5;
+      --text:     #F0F4F8;
+      --muted:    #8892A4;
+      --subtle:   #4A5568;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* Brand */
+    .brand {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .brand-mark {
+      width: 56px;
+      height: 56px;
+      background: var(--orange);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-family: 'Anton', sans-serif;
+      font-size: 24px;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    .brand h1 {
+      font-family: 'Anton', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1.5px;
+      color: var(--text);
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    .brand p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 24px;
+    }
+
+    /* Form */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 7px;
+    }
+
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 15px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+
+    input:focus {
+      border-color: var(--orange);
+    }
+
+    input::placeholder {
+      color: var(--subtle);
+    }
+
+    /* Error */
+    .error-msg {
+      display: none;
+      background: rgba(193, 88, 26, 0.12);
+      border: 1px solid rgba(193, 88, 26, 0.3);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 13px;
+      color: #E8834A;
+      margin-bottom: 16px;
+    }
+
+    /* Button */
+    .btn-primary {
+      width: 100%;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s, opacity 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-primary:hover  { background: var(--orange-hover); }
+    .btn-primary:active { opacity: 0.85; }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Loading state */
+    .btn-primary.loading::after {
+      content: '';
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Footer */
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--subtle);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrap">
+
+    <div class="brand">
+      <div class="brand-mark">DID</div>
+      <h1>Dialed In Dads</h1>
+      <p>Win the workout, win the day.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sign In</div>
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <form id="login-form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button type="submit" class="btn-primary" id="sign-in-btn">
+          Sign In
+        </button>
+      </form>
+    </div>
+
+    <div class="login-footer">
+      New client? Check your email for your invite link.
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="auth.js"></script>
+  <script>
+    // If already logged in, redirect immediately
+    (async () => {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) await redirectByRole(session.user.id);
+    })();
+
+    // Handle sign-in
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+
+      const btn   = document.getElementById('sign-in-btn');
+      const email = document.getElementById('email').value.trim();
+      const pass  = document.getElementById('password').value;
+
+      btn.disabled = true;
+      btn.classList.add('loading');
+      btn.textContent = 'Signing in';
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+
+      if (error) {
+        showError('Incorrect email or password. Try again.');
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.textContent = 'Sign In';
+        return;
+      }
+
+      await redirectByRole(data.user.id);
+    });
+  </script>
+
+</body>
+</html>
