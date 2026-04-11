@@ -3,61 +3,1063 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coach — Dialed In Dads</title>
+  <title>Coach Dashboard — Dialed In Dads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0D1117;
+      --surface: #131B2E;
+      --border:  #1E2A3E;
+      --orange:  #C1581A;
+      --green:   #2ECC8A;
+      --blue:    #5B9BD5;
+      --amber:   #F59E0B;
+      --text:    #F0F4F8;
+      --muted:   #8892A4;
+      --subtle:  #4A5568;
+    }
+
     body {
       font-family: 'DM Sans', sans-serif;
-      background: #0D1117;
-      color: #F0F4F8;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
+    }
+
+    /* ---- Top Nav ---- */
+    .top-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .placeholder {
-      text-align: center;
-      padding: 40px 24px;
-    }
-    .placeholder h1 {
+
+    .nav-brand {
       font-family: 'Anton', sans-serif;
-      font-size: 28px;
+      font-size: 20px;
       letter-spacing: 1.5px;
-      color: #C1581A;
-      margin-bottom: 12px;
+      color: var(--orange);
     }
-    .placeholder p { color: #8892A4; font-size: 15px; margin-bottom: 24px; }
-    .coach-name { color: #F0F4F8; font-weight: 600; }
-    .sign-out-btn {
-      background: none;
-      border: 1px solid #1E2A3E;
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 14px;
       border-radius: 8px;
-      padding: 10px 20px;
-      color: #8892A4;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .nav-link.active { color: var(--orange); }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-invite {
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-invite:hover { background: #D4651F; }
+
+    .coach-badge {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .btn-signout {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      color: var(--muted);
       font-family: 'DM Sans', sans-serif;
       font-size: 13px;
       cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
     }
-    .sign-out-btn:hover { border-color: #C1581A; color: #C1581A; }
+
+    .btn-signout:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ---- Page ---- */
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    .page-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .page-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    /* ---- Stats Row ---- */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-family: 'Anton', sans-serif;
+      font-size: 36px;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .stat-value.orange { color: var(--orange); }
+    .stat-value.green  { color: var(--green); }
+    .stat-value.amber  { color: var(--amber); }
+    .stat-value.blue   { color: var(--blue); }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--subtle);
+      margin-top: 6px;
+    }
+
+    /* ---- Section header ---- */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 18px;
+      letter-spacing: 0.5px;
+    }
+
+    .tab-pills {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+    }
+
+    .tab-pill {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .tab-pill.active {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    /* ---- Clients Table ---- */
+    .clients-table {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr 100px;
+      gap: 0;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .th {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .table-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr 100px;
+      gap: 0;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+      transition: background 0.12s;
+      cursor: pointer;
+    }
+
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: rgba(255,255,255,0.03); }
+
+    .client-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .client-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: rgba(193,88,26,0.12);
+      border: 1px solid rgba(193,88,26,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Anton', sans-serif;
+      font-size: 13px;
+      color: var(--orange);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .attention-dot {
+      position: absolute;
+      top: -2px; right: -2px;
+      width: 10px; height: 10px;
+      background: var(--amber);
+      border-radius: 50%;
+      border: 2px solid var(--surface);
+    }
+
+    .client-name { font-weight: 600; font-size: 14px; }
+    .client-phase {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .td { font-size: 14px; color: var(--text); }
+    .td.muted { color: var(--muted); }
+
+    .streak-val {
+      font-family: 'Anton', sans-serif;
+      font-size: 18px;
+      color: var(--orange);
+    }
+
+    .trend-arrow {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .trend-arrow.down  { color: var(--green); }
+    .trend-arrow.up    { color: var(--blue); }
+    .trend-arrow.flat  { color: var(--subtle); }
+
+    .btn-view {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-view:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ---- Check-in Cards ---- */
+    .checkin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .checkin-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .checkin-card:hover { border-color: rgba(193,88,26,0.4); }
+
+    .checkin-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .checkin-card-name { font-weight: 600; font-size: 15px; }
+    .checkin-card-time { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+    .checkin-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .checkin-stat {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .checkin-stat-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .checkin-stat-value {
+      font-family: 'Anton', sans-serif;
+      font-size: 20px;
+      color: var(--text);
+    }
+
+    .checkin-stat-value.hit { color: var(--green); }
+
+    .feeling-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .feeling-label { font-size: 12px; color: var(--muted); }
+
+    .feeling-pips {
+      display: flex;
+      gap: 4px;
+    }
+
+    .pip {
+      width: 20px; height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+    }
+
+    .pip.filled { background: var(--orange); }
+
+    .checkin-notes {
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .no-checkins {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--subtle);
+      font-size: 14px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--subtle);
+      font-size: 14px;
+    }
+
+    /* ---- Invite Modal ---- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      width: 440px;
+      max-width: 90vw;
+    }
+
+    .modal-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 22px;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .modal-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-input:focus { border-color: var(--orange); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover { background: #D4651F; }
+    .btn-primary:disabled { background: var(--subtle); cursor: not-allowed; }
+
+    .btn-secondary {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-secondary:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ---- Link box ---- */
+    .link-box {
+      display: none;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 16px;
+    }
+
+    .link-box.visible { display: block; }
+
+    .link-box-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .link-text {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text);
+      word-break: break-all;
+      font-family: monospace;
+    }
+
+    .btn-copy {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .btn-copy:hover { border-color: var(--green); color: var(--green); }
+    .btn-copy.copied { border-color: var(--green); color: var(--green); }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-  <div class="placeholder">
-    <h1>Coach Dashboard</h1>
-    <p>Welcome, <span class="coach-name" id="coach-name">Coach</span>. Dashboard coming next.</p>
-    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+
+  <!-- Top Nav -->
+  <nav class="top-nav">
+    <div class="nav-brand">DIALED IN DADS</div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link active">Dashboard</a>
+      <a href="programme.html" class="nav-link">Programme</a>
+      <a href="messages.html" class="nav-link">Messages</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn-invite" onclick="openInviteModal()">+ Invite Client</button>
+      <span class="coach-badge" id="coach-name-badge"></span>
+      <button class="btn-signout" onclick="signOut()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- Page -->
+  <div class="page">
+    <div class="page-title" id="page-title">Good morning, Coach</div>
+    <div class="page-sub" id="page-sub">Loading your dashboard…</div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Clients</div>
+        <div class="stat-value orange" id="stat-total">—</div>
+        <div class="stat-sub">active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Checked In Today</div>
+        <div class="stat-value green" id="stat-checkin">—</div>
+        <div class="stat-sub" id="stat-checkin-sub">of — clients</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Need Attention</div>
+        <div class="stat-value amber" id="stat-attention">—</div>
+        <div class="stat-sub">2+ days no check-in</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Streak</div>
+        <div class="stat-value blue" id="stat-streak">—</div>
+        <div class="stat-sub">days</div>
+      </div>
+    </div>
+
+    <!-- Section Header -->
+    <div class="section-header">
+      <div class="section-title" id="section-title">All Clients</div>
+      <div class="tab-pills">
+        <button class="tab-pill active" onclick="switchTab('all')">All Clients</button>
+        <button class="tab-pill" onclick="switchTab('today')">Today's Check-Ins</button>
+      </div>
+    </div>
+
+    <!-- All Clients Table -->
+    <div id="view-all">
+      <div class="clients-table">
+        <div class="table-header">
+          <div class="th">Client</div>
+          <div class="th">Last Check-In</div>
+          <div class="th">Streak</div>
+          <div class="th">Weight Trend</div>
+          <div class="th">Feeling</div>
+          <div class="th"></div>
+        </div>
+        <div id="clients-list">
+          <div class="loading-state">Loading clients…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Check-Ins -->
+    <div id="view-today" style="display:none;">
+      <div class="checkin-grid" id="checkins-grid">
+        <div class="loading-state">Loading check-ins…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invite Modal -->
+  <div class="modal-overlay" id="invite-modal">
+    <div class="modal">
+      <div class="modal-title">Invite a Client</div>
+      <div class="modal-sub">Enter their email and we'll generate a unique sign-up link. It expires in 7 days.</div>
+
+      <div class="form-group">
+        <label class="form-label" for="invite-email">Client Email</label>
+        <input class="form-input" id="invite-email" type="email" placeholder="client@example.com" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="invite-name">Client Name (optional)</label>
+        <input class="form-input" id="invite-name" type="text" placeholder="John Smith" autocomplete="off">
+      </div>
+
+      <div class="link-box" id="link-box">
+        <div class="link-box-label">Invite Link</div>
+        <div class="link-row">
+          <div class="link-text" id="link-text"></div>
+          <button class="btn-copy" id="btn-copy" onclick="copyLink()">Copy</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeInviteModal()">Cancel</button>
+        <button class="btn-primary" id="btn-generate" onclick="generateInvite()">Generate Link</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../auth.js"></script>
   <script>
+    let coachData = null;
+    let allClients = [];
+    let todayCheckins = [];
+    let currentTab = 'all';
+
+    // ---- Boot ----
     (async () => {
       const session = await requireCoach();
       if (!session) return;
-      const coach = await getCurrentCoach(session.user.id);
-      if (coach?.name) document.getElementById('coach-name').textContent = coach.name;
+
+      coachData = await getCurrentCoach(session.user.id);
+      if (!coachData) return;
+
+      // Greeting
+      const hr = new Date().getHours();
+      const greeting = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+      const firstName = coachData.name?.split(' ')[0] || 'Coach';
+      document.getElementById('page-title').textContent = `${greeting}, ${firstName}`;
+      document.getElementById('coach-name-badge').textContent = coachData.name || '';
+
+      await loadDashboard();
     })();
+
+    // ---- Load Everything ----
+    async function loadDashboard() {
+      const today = new Date().toISOString().split('T')[0];
+      const twoDaysAgo = new Date(Date.now() - 2 * 864e5).toISOString().split('T')[0];
+
+      // Fetch all clients for this coach
+      const { data: clients } = await db
+        .from('clients')
+        .select('*')
+        .eq('coach_id', coachData.id);
+
+      allClients = clients || [];
+
+      if (!allClients.length) {
+        document.getElementById('page-sub').textContent = 'No clients yet. Invite your first client to get started.';
+        document.getElementById('stat-total').textContent = '0';
+        document.getElementById('stat-checkin').textContent = '0';
+        document.getElementById('stat-checkin-sub').textContent = 'of 0 clients';
+        document.getElementById('stat-attention').textContent = '0';
+        document.getElementById('stat-streak').textContent = '0';
+        document.getElementById('clients-list').innerHTML = `<div class="empty-state">No clients yet — invite one above.</div>`;
+        document.getElementById('checkins-grid').innerHTML = `<div class="no-checkins">No clients yet.</div>`;
+        return;
+      }
+
+      const clientIds = allClients.map(c => c.id);
+
+      // Fetch recent check-ins (last 14 days) for all clients
+      const twoWeeksAgo = new Date(Date.now() - 14 * 864e5).toISOString().split('T')[0];
+      const { data: recentCheckins } = await db
+        .from('check_ins')
+        .select('*')
+        .in('client_id', clientIds)
+        .gte('date', twoWeeksAgo)
+        .order('date', { ascending: false });
+
+      const checkins = recentCheckins || [];
+
+      // Today's check-ins
+      todayCheckins = checkins.filter(c => c.date === today);
+
+      // Build per-client stats
+      const clientMap = {};
+      allClients.forEach(client => {
+        const clientCheckins = checkins
+          .filter(c => c.client_id === client.id)
+          .sort((a, b) => b.date.localeCompare(a.date));
+
+        const lastCheckin = clientCheckins[0] || null;
+        const todayCI = clientCheckins.find(c => c.date === today) || null;
+
+        // Streak: count consecutive days back from today
+        let streak = 0;
+        let checkDate = new Date();
+        for (let i = 0; i < 14; i++) {
+          const ds = checkDate.toISOString().split('T')[0];
+          if (clientCheckins.find(c => c.date === ds)) {
+            streak++;
+            checkDate = new Date(checkDate - 864e5);
+          } else {
+            break;
+          }
+        }
+
+        // Weight trend: compare first and last of available check-ins with weight
+        const withWeight = clientCheckins.filter(c => c.weight != null);
+        let trend = 'flat';
+        if (withWeight.length >= 2) {
+          const newest = withWeight[0].weight;
+          const oldest = withWeight[withWeight.length - 1].weight;
+          const goal = client.goal_weight;
+          if (goal != null) {
+            // Losing: newest < oldest = good (green down)
+            if (goal < (client.start_weight || oldest)) {
+              trend = newest < oldest ? 'down' : newest > oldest ? 'up' : 'flat';
+            } else {
+              trend = newest > oldest ? 'up' : newest < oldest ? 'down' : 'flat';
+            }
+          } else {
+            trend = newest < oldest ? 'down' : newest > oldest ? 'up' : 'flat';
+          }
+        }
+
+        // Days since last check-in
+        let daysSince = null;
+        if (lastCheckin) {
+          const last = new Date(lastCheckin.date + 'T00:00:00');
+          const now  = new Date(today + 'T00:00:00');
+          daysSince = Math.round((now - last) / 864e5);
+        }
+
+        clientMap[client.id] = { client, lastCheckin, todayCI, streak, trend, daysSince };
+      });
+
+      // Stats
+      const checkedInToday = allClients.filter(c => clientMap[c.id].todayCI).length;
+      const needAttention  = allClients.filter(c => {
+        const d = clientMap[c.id].daysSince;
+        return d === null || d >= 2;
+      }).length;
+      const avgStreak = allClients.length
+        ? Math.round(allClients.reduce((s, c) => s + clientMap[c.id].streak, 0) / allClients.length)
+        : 0;
+
+      document.getElementById('stat-total').textContent = allClients.length;
+      document.getElementById('stat-checkin').textContent = checkedInToday;
+      document.getElementById('stat-checkin-sub').textContent = `of ${allClients.length} clients`;
+      document.getElementById('stat-attention').textContent = needAttention;
+      document.getElementById('stat-streak').textContent = avgStreak;
+      document.getElementById('page-sub').textContent =
+        `${checkedInToday} of ${allClients.length} clients checked in today`;
+
+      // Render all clients table
+      renderClientsTable(clientMap);
+
+      // Render today's check-ins
+      renderTodayCheckins(clientMap);
+    }
+
+    // ---- Render All Clients Table ----
+    function renderClientsTable(clientMap) {
+      const today = new Date().toISOString().split('T')[0];
+      // Sort: attention first, then by last check-in desc
+      const sorted = [...allClients].sort((a, b) => {
+        const da = clientMap[a.id].daysSince;
+        const db2 = clientMap[b.id].daysSince;
+        const attA = da === null || da >= 2 ? 0 : 1;
+        const attB = db2 === null || db2 >= 2 ? 0 : 1;
+        if (attA !== attB) return attA - attB;
+        return (db2 || 99) - (da || 99);
+      });
+
+      if (!sorted.length) {
+        document.getElementById('clients-list').innerHTML = `<div class="empty-state">No clients yet.</div>`;
+        return;
+      }
+
+      const html = sorted.map(client => {
+        const { lastCheckin, todayCI, streak, trend, daysSince } = clientMap[client.id];
+        const needsAttention = daysSince === null || daysSince >= 2;
+        const initial = (client.name || '?').charAt(0).toUpperCase();
+        const phase = client.current_phase || 'No Phase';
+
+        const lastDateStr = lastCheckin
+          ? formatRelativeDate(lastCheckin.date)
+          : 'Never';
+
+        const trendArrow = trend === 'down'
+          ? `<span class="trend-arrow down">↓</span>`
+          : trend === 'up'
+          ? `<span class="trend-arrow up">↑</span>`
+          : `<span class="trend-arrow flat">→</span>`;
+
+        const feeling = todayCI?.feeling || lastCheckin?.feeling || null;
+        const feelingHtml = feeling
+          ? `<div class="feeling-pips">${[1,2,3,4,5].map(n => `<div class="pip ${n <= feeling ? 'filled' : ''}"></div>`).join('')}</div>`
+          : `<span style="color:var(--subtle);font-size:12px;">—</span>`;
+
+        return `<div class="table-row" onclick="viewClient('${client.id}')">
+          <div class="client-name-cell">
+            <div class="client-avatar">
+              ${initial}
+              ${needsAttention ? '<div class="attention-dot"></div>' : ''}
+            </div>
+            <div>
+              <div class="client-name">${esc(client.name || 'Unnamed')}</div>
+              <div class="client-phase">${esc(phase)}</div>
+            </div>
+          </div>
+          <div class="td ${!lastCheckin ? 'muted' : ''}">${lastDateStr}</div>
+          <div class="td"><span class="streak-val">${streak}</span></div>
+          <div class="td">${trendArrow}</div>
+          <div class="td">${feelingHtml}</div>
+          <div class="td">
+            <button class="btn-view" onclick="event.stopPropagation();viewClient('${client.id}')">View →</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('clients-list').innerHTML = html;
+    }
+
+    // ---- Render Today's Check-Ins ----
+    function renderTodayCheckins(clientMap) {
+      const withCheckin = allClients.filter(c => clientMap[c.id].todayCI);
+
+      if (!withCheckin.length) {
+        document.getElementById('checkins-grid').innerHTML =
+          `<div class="no-checkins">No check-ins yet today.<br>Check back later.</div>`;
+        return;
+      }
+
+      const html = withCheckin.map(client => {
+        const ci = clientMap[client.id].todayCI;
+        const initial = (client.name || '?').charAt(0).toUpperCase();
+        const time = new Date(ci.created_at || ci.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+        const weight  = ci.weight     != null ? `${ci.weight} kg` : '—';
+        const cals    = ci.calories   != null ? ci.calories : '—';
+        const protein = ci.protein    != null ? `${ci.protein}g` : '—';
+        const steps   = ci.steps      != null ? ci.steps.toLocaleString() : '—';
+        const feeling = ci.feeling    || 0;
+
+        const calsHit = ci.calories != null && client.goal_calories != null && ci.calories >= client.goal_calories;
+        const calsClass = calsHit ? 'hit' : '';
+
+        return `<div class="checkin-card" onclick="viewClient('${client.id}')">
+          <div class="checkin-card-header">
+            <div class="client-avatar" style="position:relative">${initial}</div>
+            <div class="checkin-card-name">${esc(client.name || 'Unnamed')}</div>
+            <div class="checkin-card-time">${time}</div>
+          </div>
+          <div class="checkin-stats">
+            <div class="checkin-stat">
+              <div class="checkin-stat-label">Weight</div>
+              <div class="checkin-stat-value">${weight}</div>
+            </div>
+            <div class="checkin-stat">
+              <div class="checkin-stat-label">Calories</div>
+              <div class="checkin-stat-value ${calsClass}">${cals}</div>
+            </div>
+            <div class="checkin-stat">
+              <div class="checkin-stat-label">Protein</div>
+              <div class="checkin-stat-value">${protein}</div>
+            </div>
+            <div class="checkin-stat">
+              <div class="checkin-stat-label">Steps</div>
+              <div class="checkin-stat-value">${steps}</div>
+            </div>
+          </div>
+          <div class="feeling-bar">
+            <span class="feeling-label">Feeling</span>
+            <div class="feeling-pips">
+              ${[1,2,3,4,5].map(n => `<div class="pip ${n <= feeling ? 'filled' : ''}"></div>`).join('')}
+            </div>
+          </div>
+          ${ci.notes ? `<div class="checkin-notes">"${esc(ci.notes)}"</div>` : ''}
+        </div>`;
+      }).join('');
+
+      document.getElementById('checkins-grid').innerHTML = html;
+    }
+
+    // ---- Tab Switch ----
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-pill').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (tab === 'all') {
+        document.getElementById('view-all').style.display = '';
+        document.getElementById('view-today').style.display = 'none';
+        document.getElementById('section-title').textContent = 'All Clients';
+      } else {
+        document.getElementById('view-all').style.display = 'none';
+        document.getElementById('view-today').style.display = '';
+        document.getElementById('section-title').textContent = "Today's Check-Ins";
+      }
+    }
+
+    // ---- Navigate to client ----
+    function viewClient(clientId) {
+      window.location.href = `client.html?id=${clientId}`;
+    }
+
+    // ---- Invite Modal ----
+    function openInviteModal() {
+      document.getElementById('invite-email').value = '';
+      document.getElementById('invite-name').value = '';
+      document.getElementById('link-box').classList.remove('visible');
+      document.getElementById('btn-generate').textContent = 'Generate Link';
+      document.getElementById('btn-generate').disabled = false;
+      document.getElementById('invite-modal').classList.add('open');
+    }
+
+    function closeInviteModal() {
+      document.getElementById('invite-modal').classList.remove('open');
+    }
+
+    async function generateInvite() {
+      const email = document.getElementById('invite-email').value.trim();
+      if (!email) {
+        document.getElementById('invite-email').focus();
+        return;
+      }
+
+      const btn = document.getElementById('btn-generate');
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 7 * 864e5).toISOString();
+
+      const { error } = await db.from('invites').insert({
+        coach_id:   coachData.id,
+        email,
+        token,
+        status:     'pending',
+        expires_at: expiresAt,
+      });
+
+      if (error) {
+        console.error(error);
+        btn.disabled = false;
+        btn.textContent = 'Generate Link';
+        return;
+      }
+
+      // Build link
+      const base = window.location.origin + window.location.pathname.replace('coach/index.html', '');
+      const link = `${base}register.html?token=${token}`;
+
+      document.getElementById('link-text').textContent = link;
+      document.getElementById('link-box').classList.add('visible');
+      btn.textContent = '✓ Link Generated';
+    }
+
+    function copyLink() {
+      const link = document.getElementById('link-text').textContent;
+      navigator.clipboard.writeText(link).then(() => {
+        const btn = document.getElementById('btn-copy');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    // ---- Helpers ----
+    function formatRelativeDate(dateStr) {
+      const today = new Date().toISOString().split('T')[0];
+      const yest  = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+      if (dateStr === today) return 'Today';
+      if (dateStr === yest)  return 'Yesterday';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Close modal on overlay click
+    document.getElementById('invite-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeInviteModal();
+    });
   </script>
+
 </body>
 </html>

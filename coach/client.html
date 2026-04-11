@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client — Dialed In Dads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0D1117;
+      --surface: #131B2E;
+      --border:  #1E2A3E;
+      --orange:  #C1581A;
+      --green:   #2ECC8A;
+      --blue:    #5B9BD5;
+      --amber:   #F59E0B;
+      --text:    #F0F4F8;
+      --muted:   #8892A4;
+      --subtle:  #4A5568;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ---- Top Nav ---- */
+    .top-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-family: 'Anton', sans-serif;
+      font-size: 20px;
+      letter-spacing: 1.5px;
+      color: var(--orange);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 8px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+    .btn-back {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-back:hover { border-color: var(--orange); color: var(--orange); }
+
+    .btn-signout {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-signout:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ---- Page ---- */
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* ---- Client header ---- */
+    .client-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .client-avatar-lg {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: rgba(193,88,26,0.12);
+      border: 2px solid rgba(193,88,26,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Anton', sans-serif;
+      font-size: 26px;
+      color: var(--orange);
+      flex-shrink: 0;
+    }
+
+    .client-header-info { flex: 1; }
+
+    .client-header-name {
+      font-family: 'Anton', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1px;
+    }
+
+    .client-header-meta {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .phase-pill {
+      display: inline-block;
+      background: rgba(193,88,26,0.15);
+      border: 1px solid rgba(193,88,26,0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--orange);
+      margin-left: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-action {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-action:hover { border-color: var(--orange); color: var(--orange); }
+
+    .btn-action.primary {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #fff;
+    }
+
+    .btn-action.primary:hover { background: #D4651F; }
+
+    /* ---- Stats Row ---- */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'Anton', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .stat-value.orange { color: var(--orange); }
+    .stat-value.green  { color: var(--green); }
+    .stat-value.blue   { color: var(--blue); }
+    .stat-value.amber  { color: var(--amber); }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--subtle);
+      margin-top: 5px;
+    }
+
+    /* ---- 2-col layout ---- */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ---- Card ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    .card-body { padding: 20px; }
+
+    /* ---- Weight Chart ---- */
+    .chart-wrap {
+      height: 160px;
+      position: relative;
+    }
+
+    svg.chart {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* ---- Check-In History ---- */
+    .checkin-row {
+      display: grid;
+      grid-template-columns: 90px 70px 80px 70px 70px 80px 1fr;
+      gap: 0;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      align-items: center;
+    }
+
+    .checkin-row:last-child { border-bottom: none; }
+
+    .checkin-row.header {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .feeling-mini {
+      display: flex;
+      gap: 2px;
+    }
+
+    .pip-mini {
+      width: 10px; height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+    }
+
+    .pip-mini.filled { background: var(--orange); }
+
+    /* ---- Goals Panel ---- */
+    .goals-form { display: flex; flex-direction: column; gap: 14px; }
+
+    .goal-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .goal-label {
+      flex: 1;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .goal-input {
+      width: 90px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      text-align: right;
+      transition: border-color 0.15s;
+    }
+
+    .goal-input:focus { border-color: var(--orange); }
+
+    .goal-unit {
+      font-size: 12px;
+      color: var(--subtle);
+      width: 30px;
+    }
+
+    /* ---- Programme Panel ---- */
+    .prog-item {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .prog-item:last-child { border-bottom: none; }
+    .prog-item:hover { background: rgba(255,255,255,0.03); }
+    .prog-item.active-prog { background: rgba(193,88,26,0.07); }
+
+    .prog-name { font-size: 14px; font-weight: 500; }
+    .prog-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .prog-badge {
+      font-size: 11px;
+      background: rgba(193,88,26,0.15);
+      border: 1px solid rgba(193,88,26,0.3);
+      color: var(--orange);
+      border-radius: 12px;
+      padding: 2px 10px;
+    }
+
+    /* ---- Phase editor ---- */
+    .phase-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .phase-select:focus { border-color: var(--orange); }
+
+    /* ---- Buttons ---- */
+    .btn-save {
+      width: 100%;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.15s;
+    }
+
+    .btn-save:hover { background: #D4651F; }
+    .btn-save.saved { background: var(--green); }
+
+    .btn-assign {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-assign:hover { border-color: var(--orange); color: var(--orange); }
+    .btn-assign.active { border-color: var(--green); color: var(--green); }
+
+    .loading-state { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+    .empty-state { text-align: center; padding: 30px; color: var(--subtle); font-size: 13px; }
+
+    .no-data { padding: 20px; text-align: center; color: var(--subtle); font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Nav -->
+  <nav class="top-nav">
+    <div class="nav-brand">DIALED IN DADS</div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <a href="programme.html" class="nav-link">Programme</a>
+      <a href="messages.html" class="nav-link">Messages</a>
+    </div>
+    <a href="index.html" class="btn-back">← Back</a>
+    <button class="btn-signout" onclick="signOut()">Sign Out</button>
+  </nav>
+
+  <!-- Page -->
+  <div class="page" id="page">
+    <div class="loading-state">Loading client…</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth.js"></script>
+  <script>
+    let coachData = null;
+    let clientData = null;
+    let checkins = [];
+    let programmes = [];
+
+    const clientId = new URLSearchParams(window.location.search).get('id');
+
+    // ---- Boot ----
+    (async () => {
+      if (!clientId) { window.location.href = 'index.html'; return; }
+
+      const session = await requireCoach();
+      if (!session) return;
+
+      coachData = await getCurrentCoach(session.user.id);
+      if (!coachData) return;
+
+      // Fetch client
+      const { data: client } = await db
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .eq('coach_id', coachData.id)
+        .maybeSingle();
+
+      if (!client) { window.location.href = 'index.html'; return; }
+      clientData = client;
+
+      // Parallel fetches
+      const [checkinsRes, progsRes] = await Promise.all([
+        db.from('check_ins')
+          .select('*')
+          .eq('client_id', clientId)
+          .order('date', { ascending: false })
+          .limit(30),
+        db.from('programmes')
+          .select('*')
+          .eq('coach_id', coachData.id)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      checkins   = checkinsRes.data  || [];
+      programmes = progsRes.data     || [];
+
+      renderPage();
+    })();
+
+    // ---- Render Page ----
+    function renderPage() {
+      const page = document.getElementById('page');
+
+      const initial = (clientData.name || '?').charAt(0).toUpperCase();
+      const phase   = clientData.current_phase || 'No Phase';
+
+      // Stats
+      const today = new Date().toISOString().split('T')[0];
+      const todayCI = checkins.find(c => c.date === today);
+      const withWeight = checkins.filter(c => c.weight != null);
+      const currentWeight = withWeight[0]?.weight ?? '—';
+      const startWeight = clientData.start_weight ?? withWeight[withWeight.length - 1]?.weight ?? '—';
+      const goalWeight  = clientData.goal_weight ?? '—';
+      const lost = (typeof startWeight === 'number' && typeof currentWeight === 'number')
+        ? (startWeight - currentWeight).toFixed(1) : '—';
+
+      // Streak
+      let streak = 0;
+      let checkDate = new Date();
+      for (let i = 0; i < 60; i++) {
+        const ds = checkDate.toISOString().split('T')[0];
+        if (checkins.find(c => c.date === ds)) { streak++; checkDate = new Date(checkDate - 864e5); }
+        else break;
+      }
+
+      // 7-day avg weight
+      const sevenDaysAgo = new Date(Date.now() - 7 * 864e5).toISOString().split('T')[0];
+      const last7 = checkins.filter(c => c.date >= sevenDaysAgo && c.weight != null);
+      const avg7 = last7.length
+        ? (last7.reduce((s, c) => s + c.weight, 0) / last7.length).toFixed(1)
+        : '—';
+
+      page.innerHTML = `
+        <!-- Client Header -->
+        <div class="client-header">
+          <div class="client-avatar-lg">${initial}</div>
+          <div class="client-header-info">
+            <div class="client-header-name">
+              ${esc(clientData.name || 'Unnamed')}
+              <span class="phase-pill" id="phase-display">${esc(phase)}</span>
+            </div>
+            <div class="client-header-meta">${esc(clientData.email || '')} &nbsp;·&nbsp; Client since ${formatDate(clientData.created_at)}</div>
+          </div>
+          <div class="header-actions">
+            <a href="messages.html" class="btn-action">Message</a>
+          </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Current Weight</div>
+            <div class="stat-value orange">${currentWeight !== '—' ? currentWeight + ' kg' : '—'}</div>
+            <div class="stat-sub">7-day avg: ${avg7 !== '—' ? avg7 + ' kg' : '—'}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Start Weight</div>
+            <div class="stat-value blue">${startWeight !== '—' ? startWeight + ' kg' : '—'}</div>
+            <div class="stat-sub">Goal: ${goalWeight !== '—' ? goalWeight + ' kg' : '—'}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Lost</div>
+            <div class="stat-value green">${lost !== '—' ? lost + ' kg' : '—'}</div>
+            <div class="stat-sub">${lost !== '—' && goalWeight !== '—' ? (goalWeight - currentWeight).toFixed(1) + ' kg to go' : ''}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Streak</div>
+            <div class="stat-value orange">${streak}</div>
+            <div class="stat-sub">days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Today's Feeling</div>
+            <div class="stat-value ${todayCI ? 'orange' : 'blue'}">${todayCI?.feeling ? todayCI.feeling + '/5' : todayCI ? '—' : 'No CI'}</div>
+            <div class="stat-sub">${todayCI ? 'checked in today' : 'not yet today'}</div>
+          </div>
+        </div>
+
+        <!-- Main 2-col -->
+        <div class="two-col">
+          <!-- Left: History + Chart -->
+          <div>
+            <!-- Weight Chart -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Weight Trend</div>
+                <span style="font-size:12px;color:var(--muted);">Last 30 days</span>
+              </div>
+              <div class="card-body">
+                <div class="chart-wrap" id="chart-wrap">
+                  <div class="no-data">No weight data yet</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Check-In History -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Check-In History</div>
+                <span style="font-size:12px;color:var(--muted);">Last 30 days</span>
+              </div>
+              <div class="checkin-row header">
+                <div>Date</div>
+                <div>Weight</div>
+                <div>Calories</div>
+                <div>Protein</div>
+                <div>Steps</div>
+                <div>Feeling</div>
+                <div>Notes</div>
+              </div>
+              <div id="checkin-history"></div>
+            </div>
+          </div>
+
+          <!-- Right: Goals + Phase + Programme -->
+          <div>
+            <!-- Goals Editor -->
+            <div class="card" style="margin-bottom:20px">
+              <div class="card-header">
+                <div class="card-title">Goals & Targets</div>
+              </div>
+              <div class="card-body">
+                <div class="goals-form">
+                  <div class="goal-row">
+                    <div class="goal-label">Goal Weight</div>
+                    <input class="goal-input" id="g-weight" type="number" step="0.1" placeholder="—" value="${clientData.goal_weight ?? ''}">
+                    <span class="goal-unit">kg</span>
+                  </div>
+                  <div class="goal-row">
+                    <div class="goal-label">Calories Target</div>
+                    <input class="goal-input" id="g-cals" type="number" step="50" placeholder="—" value="${clientData.goal_calories ?? ''}">
+                    <span class="goal-unit">kcal</span>
+                  </div>
+                  <div class="goal-row">
+                    <div class="goal-label">Protein Target</div>
+                    <input class="goal-input" id="g-protein" type="number" step="5" placeholder="—" value="${clientData.goal_protein ?? ''}">
+                    <span class="goal-unit">g</span>
+                  </div>
+                  <div class="goal-row">
+                    <div class="goal-label">Steps Target</div>
+                    <input class="goal-input" id="g-steps" type="number" step="500" placeholder="—" value="${clientData.goal_steps ?? ''}">
+                    <span class="goal-unit">steps</span>
+                  </div>
+                  <div class="goal-row">
+                    <div class="goal-label">Fat Target</div>
+                    <input class="goal-input" id="g-fat" type="number" step="5" placeholder="—" value="${clientData.goal_fat ?? ''}">
+                    <span class="goal-unit">g</span>
+                  </div>
+                  <div class="goal-row">
+                    <div class="goal-label">Start Weight</div>
+                    <input class="goal-input" id="g-start" type="number" step="0.1" placeholder="—" value="${clientData.start_weight ?? ''}">
+                    <span class="goal-unit">kg</span>
+                  </div>
+                </div>
+                <button class="btn-save" id="btn-save-goals" onclick="saveGoals()">Save Goals</button>
+              </div>
+            </div>
+
+            <!-- Phase Editor -->
+            <div class="card" style="margin-bottom:20px">
+              <div class="card-header">
+                <div class="card-title">Phase</div>
+              </div>
+              <div class="card-body">
+                <select class="phase-select" id="phase-select">
+                  <option value="">— Select Phase —</option>
+                  <option value="Cut" ${clientData.current_phase === 'Cut' ? 'selected' : ''}>Cut</option>
+                  <option value="Bulk" ${clientData.current_phase === 'Bulk' ? 'selected' : ''}>Bulk</option>
+                  <option value="Maintain" ${clientData.current_phase === 'Maintain' ? 'selected' : ''}>Maintain</option>
+                  <option value="Recomp" ${clientData.current_phase === 'Recomp' ? 'selected' : ''}>Recomp</option>
+                </select>
+                <button class="btn-save" id="btn-save-phase" onclick="savePhase()">Save Phase</button>
+              </div>
+            </div>
+
+            <!-- Programme Assignment -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Programme</div>
+              </div>
+              <div id="prog-list">
+                ${programmes.length === 0
+                  ? '<div class="no-data">No programmes yet. <a href="programme.html" style="color:var(--orange)">Build one →</a></div>'
+                  : programmes.map(p => {
+                    const isActive = p.id === clientData.programme_id;
+                    return `<div class="prog-item ${isActive ? 'active-prog' : ''}">
+                      <div>
+                        <div class="prog-name">${esc(p.name)}</div>
+                        <div class="prog-meta">${p.total_weeks || '—'} weeks</div>
+                      </div>
+                      <button class="btn-assign ${isActive ? 'active' : ''}" onclick="assignProgramme('${p.id}', '${esc(p.name)}')">
+                        ${isActive ? '✓ Active' : 'Assign'}
+                      </button>
+                    </div>`;
+                  }).join('')
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      renderCheckinHistory();
+      renderWeightChart();
+    }
+
+    // ---- Render Check-In History ----
+    function renderCheckinHistory() {
+      const el = document.getElementById('checkin-history');
+      if (!checkins.length) {
+        el.innerHTML = '<div class="no-data">No check-ins yet.</div>';
+        return;
+      }
+
+      el.innerHTML = checkins.map(ci => {
+        const feeling = ci.feeling || 0;
+        return `<div class="checkin-row">
+          <div style="font-size:13px;">${formatDateShort(ci.date)}</div>
+          <div>${ci.weight != null ? ci.weight + ' kg' : '<span style="color:var(--subtle)">—</span>'}</div>
+          <div>${ci.calories != null ? ci.calories : '<span style="color:var(--subtle)">—</span>'}</div>
+          <div>${ci.protein != null ? ci.protein + 'g' : '<span style="color:var(--subtle)">—</span>'}</div>
+          <div>${ci.steps != null ? (ci.steps >= 1000 ? (ci.steps/1000).toFixed(1) + 'k' : ci.steps) : '<span style="color:var(--subtle)">—</span>'}</div>
+          <div>
+            <div class="feeling-mini">
+              ${[1,2,3,4,5].map(n => `<div class="pip-mini ${n <= feeling ? 'filled' : ''}"></div>`).join('')}
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;">
+            ${ci.notes ? esc(ci.notes) : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ---- Render Weight Chart ----
+    function renderWeightChart() {
+      const withWeight = checkins.filter(c => c.weight != null).slice(0, 30).reverse();
+      if (withWeight.length < 2) return;
+
+      const wrap = document.getElementById('chart-wrap');
+      const W = wrap.clientWidth || 600;
+      const H = 140;
+      const pad = { t: 10, r: 10, b: 30, l: 40 };
+      const iW = W - pad.l - pad.r;
+      const iH = H - pad.t - pad.b;
+
+      const weights = withWeight.map(c => c.weight);
+      const minW = Math.min(...weights) - 1;
+      const maxW = Math.max(...weights) + 1;
+
+      const xScale = i => pad.l + (i / (withWeight.length - 1)) * iW;
+      const yScale = w => pad.t + iH - ((w - minW) / (maxW - minW)) * iH;
+
+      const points = withWeight.map((c, i) => [xScale(i), yScale(c.weight)]);
+      const polyline = points.map(p => p.join(',')).join(' ');
+
+      // Goal line
+      const goalW = clientData.goal_weight;
+      const goalLine = goalW != null && goalW >= minW && goalW <= maxW
+        ? `<line x1="${pad.l}" y1="${yScale(goalW)}" x2="${pad.l + iW}" y2="${yScale(goalW)}"
+             stroke="rgba(46,204,138,0.3)" stroke-width="1" stroke-dasharray="4,4"/>`
+        : '';
+
+      // Y axis labels
+      const yLabels = [minW + 1, (minW + maxW) / 2, maxW - 1].map(v =>
+        `<text x="${pad.l - 6}" y="${yScale(v) + 4}" fill="#4A5568" font-size="11" text-anchor="end">${v.toFixed(1)}</text>`
+      ).join('');
+
+      // X axis labels (first, middle, last)
+      const xLabels = [0, Math.floor(withWeight.length / 2), withWeight.length - 1].map(i =>
+        `<text x="${xScale(i)}" y="${H - 4}" fill="#4A5568" font-size="11" text-anchor="middle">${formatDateShort(withWeight[i].date)}</text>`
+      ).join('');
+
+      wrap.innerHTML = `
+        <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+          ${goalLine}
+          <polyline points="${polyline}" fill="none" stroke="#2ECC8A" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          ${points.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#2ECC8A"/>`).join('')}
+          ${yLabels}
+          ${xLabels}
+        </svg>
+      `;
+    }
+
+    // ---- Save Goals ----
+    async function saveGoals() {
+      const btn = document.getElementById('btn-save-goals');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      const updates = {
+        goal_weight:   parseFloatOrNull(document.getElementById('g-weight').value),
+        goal_calories: parseIntOrNull(document.getElementById('g-cals').value),
+        goal_protein:  parseIntOrNull(document.getElementById('g-protein').value),
+        goal_steps:    parseIntOrNull(document.getElementById('g-steps').value),
+        goal_fat:      parseIntOrNull(document.getElementById('g-fat').value),
+        start_weight:  parseFloatOrNull(document.getElementById('g-start').value),
+      };
+
+      const { error } = await db.from('clients').update(updates).eq('id', clientId);
+
+      if (!error) {
+        Object.assign(clientData, updates);
+        btn.textContent = '✓ Saved';
+        btn.classList.add('saved');
+        setTimeout(() => {
+          btn.textContent = 'Save Goals';
+          btn.classList.remove('saved');
+          btn.disabled = false;
+        }, 2000);
+      } else {
+        btn.textContent = 'Error — try again';
+        btn.disabled = false;
+        console.error(error);
+      }
+    }
+
+    // ---- Save Phase ----
+    async function savePhase() {
+      const phase = document.getElementById('phase-select').value;
+      const btn = document.getElementById('btn-save-phase');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      const { error } = await db.from('clients').update({ current_phase: phase || null }).eq('id', clientId);
+
+      if (!error) {
+        clientData.current_phase = phase || null;
+        document.getElementById('phase-display').textContent = phase || 'No Phase';
+        btn.textContent = '✓ Saved';
+        btn.classList.add('saved');
+        setTimeout(() => {
+          btn.textContent = 'Save Phase';
+          btn.classList.remove('saved');
+          btn.disabled = false;
+        }, 2000);
+      } else {
+        btn.textContent = 'Error — try again';
+        btn.disabled = false;
+      }
+    }
+
+    // ---- Assign Programme ----
+    async function assignProgramme(progId, progName) {
+      const { error } = await db.from('clients').update({
+        programme_id: progId,
+        programme_start_date: new Date().toISOString().split('T')[0],
+      }).eq('id', clientId);
+
+      if (!error) {
+        clientData.programme_id = progId;
+        // Re-render programme list
+        const list = document.getElementById('prog-list');
+        list.querySelectorAll('.prog-item').forEach(el => {
+          el.classList.remove('active-prog');
+          const btn = el.querySelector('.btn-assign');
+          if (btn) {
+            btn.classList.remove('active');
+            btn.textContent = 'Assign';
+          }
+        });
+
+        // Find and activate the right item
+        const btns = list.querySelectorAll('.btn-assign');
+        btns.forEach((btn, i) => {
+          if (programmes[i]?.id === progId) {
+            btn.classList.add('active');
+            btn.textContent = '✓ Active';
+            btn.closest('.prog-item').classList.add('active-prog');
+          }
+        });
+      } else {
+        console.error(error);
+      }
+    }
+
+    // ---- Helpers ----
+    function formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function formatDateShort(dateStr) {
+      if (!dateStr) return '—';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function parseFloatOrNull(v) {
+      const n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    }
+
+    function parseIntOrNull(v) {
+      const n = parseInt(v, 10);
+      return isNaN(n) ? null : n;
+    }
+  </script>
+
+</body>
+</html>
