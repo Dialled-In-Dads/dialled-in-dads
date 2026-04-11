@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Messages — Dialed In Dads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0D1117;
+      --surface: #131B2E;
+      --border:  #1E2A3E;
+      --orange:  #C1581A;
+      --green:   #2ECC8A;
+      --blue:    #5B9BD5;
+      --text:    #F0F4F8;
+      --muted:   #8892A4;
+      --subtle:  #4A5568;
+      --nav-h:   64px;
+      --input-h: 68px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ---- Header ---- */
+    .page-header {
+      padding: 20px 20px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .coach-avatar {
+      width: 40px; height: 40px;
+      background: rgba(193,88,26,0.15);
+      border: 1px solid rgba(193,88,26,0.3);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Anton', sans-serif; font-size: 16px; color: var(--orange);
+      flex-shrink: 0;
+    }
+
+    .header-info { flex: 1; }
+    .header-name { font-weight: 600; font-size: 15px; }
+    .header-sub  { font-size: 12px; color: var(--muted); }
+
+    /* ---- Thread ---- */
+    .thread {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .thread-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--subtle);
+      font-size: 14px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ---- Bubbles ---- */
+    .bubble-row {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bubble-row.coach { align-items: flex-start; }
+    .bubble-row.client { align-items: flex-end; }
+
+    .bubble {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .bubble.coach {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      color: var(--text);
+    }
+
+    .bubble.client {
+      background: rgba(193,88,26,0.15);
+      border: 1px solid rgba(193,88,26,0.25);
+      border-bottom-right-radius: 4px;
+      color: var(--text);
+    }
+
+    .bubble-time {
+      font-size: 10px;
+      color: var(--subtle);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+
+    .bubble-sender {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      padding: 0 4px;
+    }
+
+    /* ---- Date divider ---- */
+    .date-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 0;
+    }
+
+    .date-divider::before,
+    .date-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .date-divider span {
+      font-size: 11px;
+      color: var(--subtle);
+      white-space: nowrap;
+    }
+
+    /* ---- Input bar ---- */
+    .input-bar {
+      height: var(--input-h);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      flex-shrink: 0;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .msg-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 10px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      resize: none;
+      height: 42px;
+      transition: border-color 0.15s;
+    }
+
+    .msg-input:focus { border-color: var(--orange); }
+    .msg-input::placeholder { color: var(--subtle); }
+
+    .btn-send {
+      width: 42px; height: 42px;
+      background: var(--orange);
+      border: none;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-send:hover  { background: #D4651F; }
+    .btn-send:active { transform: scale(0.94); }
+
+    .btn-send svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ---- Bottom nav ---- */
+    .bottom-nav {
+      position: relative;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      text-decoration: none; flex: 1; padding: 10px 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-item svg { width: 22px; height: 22px; stroke: var(--subtle); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .nav-label { font-size: 10px; font-weight: 500; color: var(--subtle); }
+    .nav-item.active svg { stroke: var(--orange); }
+    .nav-item.active .nav-label { color: var(--orange); }
+
+    .loading-state { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="coach-avatar" id="coach-initial">F</div>
+    <div class="header-info">
+      <div class="header-name" id="coach-name">Your Coach</div>
+      <div class="header-sub">Dialed In Dads</div>
+    </div>
+  </div>
+
+  <!-- Thread -->
+  <div class="thread" id="thread">
+    <div class="loading-state">Loading messages...</div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="input-bar">
+    <input class="msg-input" id="msg-input" placeholder="Message your coach…" type="text" autocomplete="off">
+    <button class="btn-send" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span class="nav-label">Dashboard</span>
+    </a>
+    <a href="check-in.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-label">Check-In</span>
+    </a>
+    <a href="workout.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M6 12h12M3 7h3M18 7h3M3 17h3M18 17h3"/></svg>
+      <span class="nav-label">Workout</span>
+    </a>
+    <a href="messages.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+      <span class="nav-label">Messages</span>
+    </a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth.js"></script>
+  <script>
+    let clientData = null;
+    let coachId    = null;
+    let messages   = [];
+
+    // ---- Boot ----
+    (async () => {
+      const session = await requireClient();
+      if (!session) return;
+
+      clientData = await getCurrentClient(session.user.id);
+      if (!clientData) return;
+
+      coachId = clientData.coach_id;
+
+      // Get coach name
+      const { data: coach } = await db
+        .from('coaches')
+        .select('name')
+        .eq('id', coachId)
+        .maybeSingle();
+
+      if (coach?.name) {
+        document.getElementById('coach-name').textContent = coach.name;
+        document.getElementById('coach-initial').textContent = coach.name.charAt(0).toUpperCase();
+      }
+
+      // Mark all coach messages as read
+      await db.from('messages')
+        .update({ is_read: true })
+        .eq('client_id', clientData.id)
+        .eq('sender_role', 'coach')
+        .eq('is_read', false);
+
+      await loadMessages();
+
+      // Enter to send
+      document.getElementById('msg-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      });
+
+      // Poll for new messages every 15s
+      setInterval(loadMessages, 15000);
+    })();
+
+    // ---- Load messages ----
+    async function loadMessages() {
+      const { data } = await db
+        .from('messages')
+        .select('*')
+        .eq('client_id', clientData.id)
+        .order('sent_at', { ascending: true });
+
+      messages = data || [];
+      renderThread();
+    }
+
+    // ---- Render thread ----
+    function renderThread() {
+      const el = document.getElementById('thread');
+
+      if (!messages.length) {
+        el.innerHTML = `<div class="thread-empty">
+          <div>
+            <div style="font-size:32px;margin-bottom:12px">💬</div>
+            <div>No messages yet.<br>Send your coach a message to get started.</div>
+          </div>
+        </div>`;
+        return;
+      }
+
+      let html = '';
+      let lastDate = '';
+
+      messages.forEach(msg => {
+        const msgDate = msg.sent_at.split('T')[0];
+        if (msgDate !== lastDate) {
+          html += `<div class="date-divider"><span>${formatDate(msgDate)}</span></div>`;
+          lastDate = msgDate;
+        }
+
+        const role = msg.sender_role;
+        html += `<div class="bubble-row ${role}">
+          <div class="bubble-sender">${role === 'coach' ? 'Coach' : 'You'}</div>
+          <div class="bubble ${role}">${esc(msg.body)}</div>
+          <div class="bubble-time">${formatTime(msg.sent_at)}</div>
+        </div>`;
+      });
+
+      el.innerHTML = html;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // ---- Send message ----
+    async function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const body  = input.value.trim();
+      if (!body) return;
+
+      input.value = '';
+
+      const { data, error } = await db.from('messages').insert({
+        coach_id:    coachId,
+        client_id:   clientData.id,
+        sender_role: 'client',
+        body,
+        is_read:     false,
+      }).select().single();
+
+      if (error) { console.error(error); return; }
+
+      messages.push(data);
+      renderThread();
+    }
+
+    // ---- Helpers ----
+    function formatDate(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      const today = new Date().toISOString().split('T')[0];
+      const yest  = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+      if (dateStr === today) return 'Today';
+      if (dateStr === yest)  return 'Yesterday';
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+
+    function formatTime(iso) {
+      return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+        .replace(/\n/g,'<br>');
+    }
+  </script>
+
+</body>
+</html>
