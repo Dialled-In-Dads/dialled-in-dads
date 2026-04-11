@@ -1,0 +1,17 @@
+{
+  "name": "Dialed In Dads",
+  "short_name": "DID",
+  "description": "Win the workout, win the day.",
+  "start_url": "/dialled-in-dads/client/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D1117",
+  "theme_color": "#0D1117",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%23C1581A'/><text x='96' y='130' font-family='serif' font-size='90' font-weight='bold' text-anchor='middle' fill='white'>D</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dialed In Dads">
+  <link rel="manifest" href="../manifest.json">
   <title>Dashboard — Dialed In Dads</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -463,6 +466,36 @@
       vertical-align: middle;
     }
 
+    /* ---- Install banner ---- */
+    .install-banner {
+      display: none;
+      position: fixed;
+      bottom: calc(var(--nav-h) + 12px);
+      left: 16px; right: 16px;
+      background: var(--surface);
+      border: 1px solid rgba(193,88,26,0.35);
+      border-radius: 14px;
+      padding: 14px 16px;
+      z-index: 200;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .install-banner.show { display: flex; }
+    .install-banner-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--orange); display: flex; align-items: center;
+      justify-content: center; font-family: 'Anton', sans-serif;
+      font-size: 16px; color: #fff; flex-shrink: 0;
+    }
+    .install-banner-text { flex: 1; }
+    .install-banner-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .install-banner-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .install-banner-close {
+      background: none; border: none; color: var(--subtle);
+      font-size: 20px; cursor: pointer; padding: 4px; line-height: 1;
+    }
+
     /* ---- Bottom nav ---- */
     .bottom-nav {
       position: fixed;
@@ -527,6 +560,16 @@
 
   <div class="content" id="main-content">
     <div class="loading-state">Loading your dashboard...</div>
+  </div>
+
+  <!-- Install banner (iOS) -->
+  <div class="install-banner" id="install-banner">
+    <div class="install-banner-icon">DID</div>
+    <div class="install-banner-text">
+      <div class="install-banner-title">Add to Home Screen</div>
+      <div class="install-banner-sub">Tap <strong>Share →</strong> then <strong>"Add to Home Screen"</strong> for the full app experience</div>
+    </div>
+    <button class="install-banner-close" onclick="dismissInstall()">×</button>
   </div>
 
   <!-- Bottom Nav -->
@@ -596,6 +639,18 @@
       const hrs = Math.floor(mins / 60);
       if (hrs < 24) return `${hrs}h ago`;
       return `${Math.floor(hrs / 24)}d ago`;
+    }
+
+    // ---- iOS install prompt ----
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true;
+    const dismissed = localStorage.getItem('install-dismissed');
+    if (isIOS && !isStandalone && !dismissed) {
+      setTimeout(() => document.getElementById('install-banner').classList.add('show'), 2000);
+    }
+    function dismissInstall() {
+      document.getElementById('install-banner').classList.remove('show');
+      localStorage.setItem('install-dismissed', '1');
     }
 
     // ---- Boot ----
