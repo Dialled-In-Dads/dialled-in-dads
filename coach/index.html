@@ -745,30 +745,30 @@
         .from('check_ins')
         .select('*')
         .in('client_id', clientIds)
-        .gte('date', twoWeeksAgo)
-        .order('date', { ascending: false });
+        .gte('check_in_date', twoWeeksAgo)
+        .order('check_in_date', { ascending: false });
 
       const checkins = recentCheckins || [];
 
       // Today's check-ins
-      todayCheckins = checkins.filter(c => c.date === today);
+      todayCheckins = checkins.filter(c => c.check_in_date === today);
 
       // Build per-client stats
       const clientMap = {};
       allClients.forEach(client => {
         const clientCheckins = checkins
           .filter(c => c.client_id === client.id)
-          .sort((a, b) => b.date.localeCompare(a.date));
+          .sort((a, b) => b.check_in_date.localeCompare(a.check_in_date));
 
         const lastCheckin = clientCheckins[0] || null;
-        const todayCI = clientCheckins.find(c => c.date === today) || null;
+        const todayCI = clientCheckins.find(c => c.check_in_date === today) || null;
 
         // Streak: count consecutive days back from today
         let streak = 0;
         let checkDate = new Date();
         for (let i = 0; i < 14; i++) {
           const ds = checkDate.toISOString().split('T')[0];
-          if (clientCheckins.find(c => c.date === ds)) {
+          if (clientCheckins.find(c => c.check_in_date === ds)) {
             streak++;
             checkDate = new Date(checkDate - 864e5);
           } else {
@@ -777,11 +777,11 @@
         }
 
         // Weight trend: compare first and last of available check-ins with weight
-        const withWeight = clientCheckins.filter(c => c.weight != null);
+        const withWeight = clientCheckins.filter(c => c.weight_kg != null);
         let trend = 'flat';
         if (withWeight.length >= 2) {
-          const newest = withWeight[0].weight;
-          const oldest = withWeight[withWeight.length - 1].weight;
+          const newest = withWeight[0].weight_kg;
+          const oldest = withWeight[withWeight.length - 1].weight_kg;
           const goal = client.goal_weight;
           if (goal != null) {
             // Losing: newest < oldest = good (green down)
@@ -798,7 +798,7 @@
         // Days since last check-in
         let daysSince = null;
         if (lastCheckin) {
-          const last = new Date(lastCheckin.date + 'T00:00:00');
+          const last = new Date(lastCheckin.check_in_date + 'T00:00:00');
           const now  = new Date(today + 'T00:00:00');
           daysSince = Math.round((now - last) / 864e5);
         }
@@ -856,7 +856,7 @@
         const phase = client.current_phase || 'No Phase';
 
         const lastDateStr = lastCheckin
-          ? formatRelativeDate(lastCheckin.date)
+          ? formatRelativeDate(lastCheckin.check_in_date)
           : 'Never';
 
         const trendArrow = trend === 'down'
@@ -865,7 +865,7 @@
           ? `<span class="trend-arrow up">↑</span>`
           : `<span class="trend-arrow flat">→</span>`;
 
-        const feeling = todayCI?.feeling || lastCheckin?.feeling || null;
+        const feeling = todayCI?.feeling_score || lastCheckin?.feeling_score || null;
         const feelingHtml = feeling
           ? `<div class="feeling-pips">${[1,2,3,4,5].map(n => `<div class="pip ${n <= feeling ? 'filled' : ''}"></div>`).join('')}</div>`
           : `<span style="color:var(--subtle);font-size:12px;">—</span>`;
@@ -907,15 +907,15 @@
       const html = withCheckin.map(client => {
         const ci = clientMap[client.id].todayCI;
         const initial = (client.name || '?').charAt(0).toUpperCase();
-        const time = new Date(ci.created_at || ci.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const time = new Date(ci.submitted_at || ci.check_in_date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-        const weight  = ci.weight     != null ? `${ci.weight} kg` : '—';
-        const cals    = ci.calories   != null ? ci.calories : '—';
-        const protein = ci.protein    != null ? `${ci.protein}g` : '—';
-        const steps   = ci.steps      != null ? ci.steps.toLocaleString() : '—';
-        const feeling = ci.feeling    || 0;
+        const weight  = ci.weight_kg            != null ? `${ci.weight_kg} kg` : '—';
+        const cals    = ci.calories_yesterday   != null ? ci.calories_yesterday : '—';
+        const protein = ci.protein_yesterday_g  != null ? `${ci.protein_yesterday_g}g` : '—';
+        const steps   = ci.steps_yesterday      != null ? ci.steps_yesterday.toLocaleString() : '—';
+        const feeling = ci.feeling_score        || 0;
 
-        const calsHit = ci.calories != null && client.goal_calories != null && ci.calories >= client.goal_calories;
+        const calsHit = ci.calories_yesterday != null && client.goal_calories != null && ci.calories_yesterday >= client.goal_calories;
         const calsClass = calsHit ? 'hit' : '';
 
         return `<div class="checkin-card" onclick="viewClient('${client.id}')">
@@ -948,7 +948,7 @@
               ${[1,2,3,4,5].map(n => `<div class="pip ${n <= feeling ? 'filled' : ''}"></div>`).join('')}
             </div>
           </div>
-          ${ci.notes ? `<div class="checkin-notes">"${esc(ci.notes)}"</div>` : ''}
+          ${ci.client_notes ? `<div class="checkin-notes">"${esc(ci.client_notes)}"</div>` : ''}
         </div>`;
       }).join('');
 
