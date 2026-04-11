@@ -667,7 +667,7 @@
       document.getElementById('page-date').textContent   = new Date().toLocaleDateString('en-GB', {
         weekday: 'long', day: 'numeric', month: 'long'
       });
-      document.getElementById('phase-pill').textContent  = phaseLabel(client.phase);
+      document.getElementById('phase-pill').textContent  = client.current_phase || phaseLabel(client.phase) || '—';
 
       // Parallel fetches
       const [
@@ -800,11 +800,13 @@
             <div class="progress-bar-fill" style="width:${progress.toFixed(1)}%"></div>
           </div>
           <div class="goal-meta">
-            ${parseFloat(lost) > 0
-              ? `<strong>${lost}kg down</strong> · ${toGo > 0 ? toGo + 'kg to go' : 'Target reached!'}`
+            ${parseFloat(toGo) <= 0
+              ? `🎯 <strong>Target reached!</strong>`
+              : parseFloat(lost) > 0
+              ? `<strong>${lost}kg down</strong> · ${toGo}kg to go`
               : parseFloat(lost) < 0
-              ? `<strong>${Math.abs(lost)}kg gained</strong> · ${Math.abs(toGo)}kg to target`
-              : `Right at target`}
+              ? `<strong>${Math.abs(lost)}kg up</strong> · ${Math.abs(toGo)}kg to target`
+              : `Just getting started — let's go 💪`}
           </div>
         </div>`;
       }
