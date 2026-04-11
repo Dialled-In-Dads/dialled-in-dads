@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Check-In — Dialed In Dads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0D1117;
+      --surface:      #131B2E;
+      --border:       #1E2A3E;
+      --orange:       #C1581A;
+      --orange-hover: #D4651F;
+      --green:        #2ECC8A;
+      --blue:         #5B9BD5;
+      --text:         #F0F4F8;
+      --muted:        #8892A4;
+      --subtle:       #4A5568;
+      --nav-h:        64px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: calc(var(--nav-h) + 24px);
+    }
+
+    /* ---- Page header ---- */
+    .page-header {
+      padding: 24px 20px 0;
+      margin-bottom: 20px;
+    }
+
+    .page-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .page-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 30px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .page-date {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ---- Content ---- */
+    .content {
+      padding: 0 16px;
+    }
+
+    /* ---- Loading ---- */
+    .loading-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ---- Missed day banner ---- */
+    .missed-banner {
+      background: rgba(91, 155, 213, 0.08);
+      border: 1px solid rgba(91, 155, 213, 0.22);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+
+    .missed-banner-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--blue);
+      margin-bottom: 3px;
+    }
+
+    .missed-banner-body {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ---- Already done state ---- */
+    .done-state {
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .done-icon {
+      width: 72px;
+      height: 72px;
+      background: rgba(46, 204, 138, 0.12);
+      border: 1px solid rgba(46, 204, 138, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 30px;
+    }
+
+    .done-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 24px;
+      letter-spacing: 1px;
+      color: var(--green);
+      margin-bottom: 10px;
+    }
+
+    .done-sub {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    /* ---- Cards ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+    }
+
+    /* ---- Fields ---- */
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field:last-child { margin-bottom: 0; }
+
+    .field-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .field-label-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .goal-hint {
+      font-size: 11px;
+      color: var(--subtle);
+    }
+
+    .goal-hint strong {
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap input {
+      padding-right: 50px;
+    }
+
+    .unit {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    input[type="number"],
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px 15px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input:focus, textarea:focus { border-color: var(--orange); }
+    input::placeholder, textarea::placeholder { color: var(--subtle); }
+
+    textarea {
+      resize: none;
+      height: 88px;
+      line-height: 1.6;
+    }
+
+    /* ---- Feeling selector ---- */
+    .feeling-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .feeling-btn {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 4px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .feeling-emoji { font-size: 20px; line-height: 1; }
+
+    .feeling-num {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--subtle);
+      letter-spacing: 0.3px;
+    }
+
+    .feeling-btn.active {
+      border-color: var(--orange);
+      background: rgba(193, 88, 26, 0.1);
+    }
+
+    .feeling-btn.active .feeling-num { color: var(--orange); }
+
+    /* ---- Error ---- */
+    .error-msg {
+      display: none;
+      background: rgba(193, 88, 26, 0.1);
+      border: 1px solid rgba(193, 88, 26, 0.3);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #E8834A;
+      margin-bottom: 12px;
+    }
+
+    /* ---- Submit button ---- */
+    .btn-submit {
+      width: 100%;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s, opacity 0.15s;
+      margin-top: 4px;
+    }
+
+    .btn-submit:hover { background: var(--orange-hover); }
+    .btn-submit:active { opacity: 0.85; }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---- Bottom nav ---- */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 4px;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      text-decoration: none;
+      flex: 1;
+      padding: 10px 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--subtle);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--subtle);
+      letter-spacing: 0.2px;
+    }
+
+    .nav-item.active svg { stroke: var(--orange); }
+    .nav-item.active .nav-label { color: var(--orange); }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-label">Morning</div>
+    <div class="page-title">Check-In</div>
+    <div class="page-date" id="page-date">—</div>
+  </div>
+
+  <div class="content" id="main-content">
+    <div class="loading-state">Loading your check-in...</div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+      <span class="nav-label">Dashboard</span>
+    </a>
+    <a href="check-in.html" class="nav-item active">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span class="nav-label">Check-In</span>
+    </a>
+    <a href="workout.html" class="nav-item">
+      <svg viewBox="0 0 24 24">
+        <path d="M6 5v14M18 5v14M6 12h12M3 7h3M18 7h3M3 17h3M18 17h3"/>
+      </svg>
+      <span class="nav-label">Workout</span>
+    </a>
+    <a href="messages.html" class="nav-item">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+        <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+      </svg>
+      <span class="nav-label">Messages</span>
+    </a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth.js"></script>
+  <script>
+    let clientData  = null;
+    let goalsData   = null;
+    let feelingScore = null;
+
+    const today     = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+
+    document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+
+    // ---- Boot ----
+    (async () => {
+      const session = await requireClient();
+      if (!session) return;
+
+      clientData = await getCurrentClient(session.user.id);
+      if (!clientData) return;
+
+      // Already checked in today?
+      const { data: todayCI } = await db
+        .from('check_ins')
+        .select('id')
+        .eq('client_id', clientData.id)
+        .eq('check_in_date', today)
+        .maybeSingle();
+
+      if (todayCI) { renderDone(); return; }
+
+      // Check-in yesterday?
+      const { data: yestCI } = await db
+        .from('check_ins')
+        .select('id')
+        .eq('client_id', clientData.id)
+        .eq('check_in_date', yesterday)
+        .maybeSingle();
+
+      // Latest goals
+      const { data: goals } = await db
+        .from('client_goals')
+        .select('*')
+        .eq('client_id', clientData.id)
+        .lte('effective_from', today)
+        .order('effective_from', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      goalsData = goals;
+
+      renderForm(!yestCI);
+    })();
+
+    // ---- Already checked in ----
+    function renderDone() {
+      document.getElementById('main-content').innerHTML = `
+        <div class="done-state">
+          <div class="done-icon">✓</div>
+          <div class="done-title">Already Checked In</div>
+          <p class="done-sub">You've already logged today.<br>Come back tomorrow — keep the streak alive.</p>
+        </div>
+      `;
+    }
+
+    // ---- Form ----
+    function renderForm(missedYesterday) {
+      const g = goalsData || {};
+
+      const hintCals   = g.calorie_goal    ? `Goal: <strong>${g.calorie_goal.toLocaleString()} kcal</strong>` : '';
+      const hintProt   = g.protein_goal_g  ? `Goal: <strong>${g.protein_goal_g}g</strong>` : '';
+      const hintFat    = g.fat_min_g       ? `Min: <strong>${g.fat_min_g}g</strong>` : '';
+      const hintSteps  = g.step_goal       ? `Goal: <strong>${g.step_goal.toLocaleString()}</strong>` : '';
+      const hintWeight = g.target_weight_kg ? `Target: <strong>${g.target_weight_kg}kg</strong>` : '';
+
+      const feelings = [
+        { score: 1, emoji: '😴', label: '1' },
+        { score: 2, emoji: '😕', label: '2' },
+        { score: 3, emoji: '😐', label: '3' },
+        { score: 4, emoji: '💪', label: '4' },
+        { score: 5, emoji: '🔥', label: '5' },
+      ];
+
+      document.getElementById('main-content').innerHTML = `
+
+        ${missedYesterday ? `
+          <div class="missed-banner">
+            <div class="missed-banner-title">Yesterday was a miss — no worries.</div>
+            <div class="missed-banner-body">What got in the way? Let's fix the system.</div>
+          </div>
+        ` : ''}
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <!-- Body weight -->
+        <div class="card">
+          <div class="card-title">Body</div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-label-text">Weight</span>
+              ${hintWeight ? `<span class="goal-hint">${hintWeight}</span>` : ''}
+            </div>
+            <div class="input-wrap">
+              <input type="number" id="f-weight" placeholder="e.g. 82.5" step="0.1" min="30" max="300" inputmode="decimal">
+              <span class="unit">kg</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nutrition -->
+        <div class="card">
+          <div class="card-title">Yesterday's Nutrition</div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-label-text">Calories</span>
+              ${hintCals ? `<span class="goal-hint">${hintCals}</span>` : ''}
+            </div>
+            <div class="input-wrap">
+              <input type="number" id="f-calories" placeholder="e.g. 2200" step="1" min="0" inputmode="numeric">
+              <span class="unit">kcal</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-label-text">Protein</span>
+              ${hintProt ? `<span class="goal-hint">${hintProt}</span>` : ''}
+            </div>
+            <div class="input-wrap">
+              <input type="number" id="f-protein" placeholder="e.g. 160" step="1" min="0" inputmode="numeric">
+              <span class="unit">g</span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-label-text">Fat</span>
+              ${hintFat ? `<span class="goal-hint">${hintFat}</span>` : ''}
+            </div>
+            <div class="input-wrap">
+              <input type="number" id="f-fat" placeholder="e.g. 70" step="1" min="0" inputmode="numeric">
+              <span class="unit">g</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Steps -->
+        <div class="card">
+          <div class="card-title">Yesterday's Steps</div>
+          <div class="field">
+            <div class="field-label">
+              <span class="field-label-text">Steps</span>
+              ${hintSteps ? `<span class="goal-hint">${hintSteps}</span>` : ''}
+            </div>
+            <input type="number" id="f-steps" placeholder="e.g. 8500" step="1" min="0" inputmode="numeric">
+          </div>
+        </div>
+
+        <!-- Feeling -->
+        <div class="card">
+          <div class="card-title">How Are You Feeling Today?</div>
+          <div class="feeling-row" id="feeling-row">
+            ${feelings.map(f => `
+              <button type="button" class="feeling-btn" data-score="${f.score}" onclick="pickFeeling(${f.score})">
+                <span class="feeling-emoji">${f.emoji}</span>
+                <span class="feeling-num">${f.label}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card">
+          <div class="card-title">Notes for Your Coach <span style="color:var(--subtle);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+          <textarea id="f-notes" placeholder="How did yesterday go? Anything to flag?"></textarea>
+        </div>
+
+        <button class="btn-submit" id="submit-btn" onclick="submit()">Log Check-In</button>
+      `;
+    }
+
+    // ---- Feeling picker ----
+    function pickFeeling(score) {
+      feelingScore = score;
+      document.querySelectorAll('.feeling-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.score) === score);
+      });
+    }
+
+    // ---- Submit ----
+    async function submit() {
+      const errEl = document.getElementById('error-msg');
+      errEl.style.display = 'none';
+
+      const weight   = parseFloat(document.getElementById('f-weight').value)   || null;
+      const calories = parseInt(document.getElementById('f-calories').value)    || null;
+      const protein  = parseInt(document.getElementById('f-protein').value)     || null;
+      const fat      = parseInt(document.getElementById('f-fat').value)         || null;
+      const steps    = parseInt(document.getElementById('f-steps').value)       || null;
+      const notes    = document.getElementById('f-notes').value.trim()          || null;
+
+      if (!weight) {
+        errEl.textContent = 'Please enter your weight to check in.';
+        errEl.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const { error } = await db.from('check_ins').insert({
+          client_id:           clientData.id,
+          goal_id:             goalsData?.id ?? null,
+          check_in_date:       today,
+          weight_kg:           weight,
+          calories_yesterday:  calories,
+          protein_yesterday_g: protein,
+          fat_yesterday_g:     fat,
+          steps_yesterday:     steps,
+          feeling_score:       feelingScore,
+          client_notes:        notes,
+          win_completed:       false,
+        });
+
+        if (error) throw error;
+
+        // Redirect to dashboard
+        goTo('/client/index.html');
+
+      } catch (err) {
+        console.error(err);
+        errEl.textContent = err.message || 'Something went wrong. Please try again.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Log Check-In';
+      }
+    }
+  </script>
+
+</body>
+</html>
