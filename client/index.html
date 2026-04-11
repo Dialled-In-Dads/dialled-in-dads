@@ -81,6 +81,28 @@
       white-space: nowrap;
     }
 
+    /* ---- Sign out menu ---- */
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .signout-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      color: var(--subtle);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .signout-btn:hover { border-color: var(--subtle); color: var(--muted); }
+
     /* ---- Content ---- */
     .content { padding: 0 16px; }
 
@@ -497,7 +519,10 @@
       <div class="page-title" id="client-name">—</div>
       <div class="page-date" id="page-date">—</div>
     </div>
-    <div class="phase-pill" id="phase-pill">—</div>
+    <div class="header-right">
+      <div class="phase-pill" id="phase-pill">—</div>
+      <button class="signout-btn" onclick="signOut()">Sign Out</button>
+    </div>
   </div>
 
   <div class="content" id="main-content">

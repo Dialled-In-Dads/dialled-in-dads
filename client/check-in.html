@@ -345,10 +345,13 @@
 </head>
 <body>
 
-  <div class="page-header">
-    <div class="page-label">Morning</div>
-    <div class="page-title">Check-In</div>
-    <div class="page-date" id="page-date">—</div>
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div class="page-label">Morning</div>
+      <div class="page-title">Check-In</div>
+      <div class="page-date" id="page-date">—</div>
+    </div>
+    <button onclick="signOut()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--subtle);cursor:pointer;margin-top:4px">Sign Out</button>
   </div>
 
   <div class="content" id="main-content">
