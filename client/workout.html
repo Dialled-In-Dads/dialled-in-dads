@@ -794,22 +794,11 @@
       // Check if block is complete → show banner
       checkBlockCompletion(blockId);
 
-      // Update win_completed on check-in if Win tier all done
-      const block = todayBlocks.find(b => b.id === blockId);
-      if (block?.tier === 'Win') {
-        const winExs   = todayExs[blockId] || [];
-        const winDone  = winExs.every(ex => {
-          const sets   = ex.sets || 3;
-          const logged = loggedSets[ex.id] || {};
-          return Array.from({length: sets}, (_,i) => i+1).every(s => logged[s]);
-        });
-        if (winDone) {
-          await db.from('check_ins')
-            .update({ win_completed: true })
-            .eq('client_id', clientData.id)
-            .eq('check_in_date', today);
-        }
-      }
+      // Any set logged = workout done
+      await db.from('check_ins')
+        .update({ win_completed: true })
+        .eq('client_id', clientData.id)
+        .eq('check_in_date', today);
     }
 
     function checkBlockCompletion(blockId) {
