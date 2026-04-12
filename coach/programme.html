@@ -1400,8 +1400,10 @@
       const vol = {};
       for (const b of blockList) {
         for (const ex of (exMap[b.id] || [])) {
+          console.log('[VOL]', ex.exercise_name, '| sets col:', ex.sets, '| rep_scheme:', ex.rep_scheme, '| muscle:', ex.muscle_group);
           const muscle = ex.muscle_group || 'Other';
           const sets   = parseSets(ex.rep_scheme, ex.sets);
+          console.log('[VOL] → parsed sets:', sets);
           vol[muscle]  = (vol[muscle] || 0) + sets;
         }
       }
