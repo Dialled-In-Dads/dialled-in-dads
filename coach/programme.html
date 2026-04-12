@@ -543,73 +543,232 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-    /* ===== INLINE FORM ===== */
-    .inline-form {
+    /* ===== EXERCISE PICKER MODAL ===== */
+    .picker-modal {
       display: none;
-      background: var(--surface2);
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .picker-modal.open { display: flex; }
+
+    .picker-box {
+      background: var(--surface);
       border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 660px;
+      max-width: 95vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .picker-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .picker-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .picker-search {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      margin-bottom: 10px;
+    }
+    .picker-search:focus { border-color: var(--orange); }
+    .picker-search::placeholder { color: var(--subtle); }
+
+    .muscle-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .muscle-chip {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+    }
+    .muscle-chip:hover { border-color: var(--orange); color: var(--orange); }
+    .muscle-chip.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+    .picker-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .picker-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--subtle);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 10px 20px 4px;
+    }
+
+    .picker-ex-row {
+      display: flex;
+      align-items: center;
+      padding: 9px 20px;
+      cursor: pointer;
+      transition: background 0.1s;
+      gap: 10px;
+    }
+    .picker-ex-row:hover { background: rgba(255,255,255,0.04); }
+    .picker-ex-row.selected { background: rgba(193,88,26,0.1); }
+
+    .picker-ex-name { font-size: 14px; font-weight: 500; flex: 1; }
+    .picker-ex-muscle {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--border);
+      padding: 2px 8px;
       border-radius: 10px;
-      padding: 12px;
-      margin-top: 8px;
     }
 
-    .inline-form.open { display: block; }
+    .picker-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
 
-    .inline-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .picker-custom-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
 
-    .inline-input {
+    .picker-custom-input {
+      flex: 1;
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 7px 10px;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+    }
+    .picker-custom-input:focus { border-color: var(--orange); }
+    .picker-custom-input::placeholder { color: var(--subtle); }
+
+    .picker-custom-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      width: 150px;
+    }
+
+    .picker-scheme-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .picker-scheme-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
       font-family: 'DM Sans', sans-serif;
       font-size: 13px;
       color: var(--text);
       outline: none;
       width: 100%;
     }
+    .picker-scheme-input:focus { border-color: var(--orange); }
+    .picker-scheme-input::placeholder { color: var(--subtle); }
 
-    .inline-input:focus { border-color: var(--orange); }
-    .inline-input::placeholder { color: var(--subtle); }
-
-    .inline-select {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 7px 10px;
-      font-family: 'DM Sans', sans-serif;
+    .picker-selected-name {
       font-size: 13px;
-      color: var(--text);
-      outline: none;
-      width: 100%;
+      font-weight: 600;
+      color: var(--orange);
+      margin-bottom: 8px;
+      min-height: 18px;
     }
 
-    .inline-select option { background: var(--surface); }
+    .picker-actions { display: flex; gap: 8px; }
 
-    .inline-actions { display: flex; gap: 6px; }
-
-    .btn-inline-save {
+    .btn-picker-add {
+      flex: 2;
       background: var(--orange);
       border: none;
-      border-radius: 6px;
-      padding: 6px 14px;
+      border-radius: 8px;
+      padding: 10px;
       font-family: 'DM Sans', sans-serif;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 600;
       color: #fff;
       cursor: pointer;
+      transition: background 0.15s;
     }
+    .btn-picker-add:hover { background: #D4651F; }
+    .btn-picker-add:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .btn-inline-cancel {
+    .btn-picker-cancel {
+      flex: 1;
       background: none;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px 12px;
+      border-radius: 8px;
+      padding: 10px;
       font-family: 'DM Sans', sans-serif;
-      font-size: 12px;
+      font-size: 13px;
       color: var(--muted);
       cursor: pointer;
     }
+
+    /* ===== EDIT EXERCISE MODAL ===== */
+    .edit-modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn-edit {
+      background: none;
+      border: none;
+      color: var(--subtle);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    .btn-edit:hover { color: var(--blue); background: rgba(91,155,213,0.1); }
   </style>
 </head>
 <body>
@@ -739,6 +898,75 @@
       <div class="modal-actions">
         <button class="btn-modal-cancel" onclick="closeModal('assign-modal')">Cancel</button>
         <button class="btn-modal-save" id="assign-save-btn" onclick="assignProgramme()">Assign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== EXERCISE PICKER MODAL ===== -->
+  <div class="picker-modal" id="ex-picker-modal">
+    <div class="picker-box">
+      <div class="picker-header">
+        <div class="picker-title">Add Exercise</div>
+        <input class="picker-search" id="picker-search" placeholder="Search exercises…" oninput="renderPickerList()">
+        <div class="muscle-chips" id="muscle-chips"></div>
+      </div>
+      <div class="picker-body" id="picker-list"></div>
+      <div class="picker-footer">
+        <div class="picker-selected-name" id="picker-selected-name">Select an exercise above or type custom below</div>
+        <div class="picker-custom-row">
+          <input class="picker-custom-input" id="picker-custom-name" placeholder="Or type custom exercise…" oninput="onCustomType()">
+          <select class="picker-custom-select" id="picker-custom-muscle">
+            <option value="">Muscle group</option>
+            <option>Chest</option><option>Back</option><option>Shoulders</option>
+            <option>Biceps</option><option>Triceps</option>
+            <option>Quads</option><option>Hamstrings</option><option>Glutes</option><option>Calves</option>
+            <option>Core</option><option>Full Body</option>
+          </select>
+        </div>
+        <div class="picker-scheme-row">
+          <input class="picker-scheme-input" id="picker-scheme" placeholder="Sets × Reps (e.g. 4×8)">
+          <input class="picker-scheme-input" id="picker-weight" type="number" step="0.5" min="0" placeholder="Target kg (optional)">
+        </div>
+        <div class="picker-actions">
+          <button class="btn-picker-cancel" onclick="closeExPicker()">Cancel</button>
+          <button class="btn-picker-add" id="btn-picker-add" onclick="saveFromPicker()" disabled>Add Exercise</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== EDIT EXERCISE MODAL ===== -->
+  <div class="modal-overlay" id="edit-ex-modal">
+    <div class="modal">
+      <div class="modal-title">Edit Exercise</div>
+      <div class="modal-field">
+        <label class="modal-label">Exercise Name</label>
+        <input class="modal-input" id="edit-ex-name" placeholder="Exercise name">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Muscle Group</label>
+        <select class="modal-select" id="edit-ex-muscle">
+          <option value="">— Select —</option>
+          <option>Chest</option><option>Back</option><option>Shoulders</option>
+          <option>Biceps</option><option>Triceps</option>
+          <option>Quads</option><option>Hamstrings</option><option>Glutes</option><option>Calves</option>
+          <option>Core</option><option>Full Body</option>
+        </select>
+      </div>
+      <div class="edit-modal-grid">
+        <div class="modal-field">
+          <label class="modal-label">Sets × Reps</label>
+          <input class="modal-input" id="edit-ex-scheme" placeholder="e.g. 4×8">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Target kg</label>
+          <input class="modal-input" id="edit-ex-weight" type="number" step="0.5" min="0" placeholder="Optional">
+        </div>
+      </div>
+      <div class="modal-error" id="edit-ex-error"></div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeModal('edit-ex-modal')">Cancel</button>
+        <button class="btn-modal-save" id="edit-ex-save-btn" onclick="saveEditExercise()">Save Changes</button>
       </div>
     </div>
   </div>
@@ -1006,9 +1234,12 @@
                     <div class="exercise-name">${esc(ex.exercise_name)}</div>
                     ${ex.muscle_group ? `<div class="exercise-muscle">${esc(ex.muscle_group)}</div>` : ''}
                   </td>
-                  <td><span class="exercise-scheme">${esc(ex.rep_scheme || `${ex.sets}×?`)}</span></td>
+                  <td><span class="exercise-scheme">${esc(ex.rep_scheme || (ex.sets ? ex.sets+'×?' : '—'))}</span></td>
                   <td><span class="exercise-weight">${ex.target_weight_kg ? ex.target_weight_kg + 'kg' : '—'}</span></td>
-                  <td><button class="btn-del" onclick="deleteExercise('${ex.id}','${b.id}')">×</button></td>
+                  <td style="display:flex;gap:2px;align-items:center">
+                    <button class="btn-edit" onclick="openEditExercise('${ex.id}','${b.id}')" title="Edit">✏️</button>
+                    <button class="btn-del"  onclick="deleteExercise('${ex.id}','${b.id}')" title="Delete">×</button>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1022,24 +1253,7 @@
               <span class="block-desc">${tier === 'win' ? 'Key compound lift — non-negotiable' : tier === 'bonus' ? 'Supporting compound' : 'Isolation / finishing touches'}</span>
             </div>
             ${exHtml}
-            <button class="btn-add" onclick="toggleAddEx('${b.id}')">+ Add Exercise</button>
-            <div class="inline-form" id="ex-form-${b.id}">
-              <div class="inline-grid">
-                <input class="inline-input" id="ex-name-${b.id}"    placeholder="Exercise name" >
-                <select class="inline-select" id="ex-muscle-${b.id}">
-                  <option value="">Muscle group</option>
-                  <option>Chest</option><option>Back</option><option>Shoulders</option>
-                  <option>Biceps</option><option>Triceps</option><option>Legs</option>
-                  <option>Glutes</option><option>Core</option><option>Full Body</option>
-                </select>
-                <input class="inline-input" id="ex-scheme-${b.id}"  placeholder="e.g. 5×5">
-                <input class="inline-input" id="ex-weight-${b.id}"  placeholder="kg" type="number" step="0.5" min="0">
-              </div>
-              <div class="inline-actions">
-                <button class="btn-inline-save"   onclick="saveExercise('${b.id}')">Save</button>
-                <button class="btn-inline-cancel" onclick="toggleAddEx('${b.id}')">Cancel</button>
-              </div>
-            </div>
+            <button class="btn-add" onclick="openExPicker('${b.id}')">+ Add Exercise</button>
           </div>
         `;
       }).join('');
@@ -1058,46 +1272,282 @@
       `;
     }
 
-    // ===== EXERCISES =====
-    function toggleAddEx(blockId) {
-      const f = document.getElementById(`ex-form-${blockId}`);
-      f.classList.toggle('open');
-      if (f.classList.contains('open')) {
-        document.getElementById(`ex-name-${blockId}`).focus();
+    // ===== EXERCISE LIBRARY =====
+    const MUSCLES = ['All','Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core','Full Body'];
+
+    const EXERCISE_LIBRARY = [
+      // Chest
+      { name: 'Bench Press',            muscle: 'Chest' },
+      { name: 'Incline Bench Press',    muscle: 'Chest' },
+      { name: 'Decline Bench Press',    muscle: 'Chest' },
+      { name: 'Dumbbell Bench Press',   muscle: 'Chest' },
+      { name: 'Incline DB Press',       muscle: 'Chest' },
+      { name: 'Dumbbell Flyes',         muscle: 'Chest' },
+      { name: 'Cable Crossover',        muscle: 'Chest' },
+      { name: 'Push-Ups',               muscle: 'Chest' },
+      { name: 'Dips',                   muscle: 'Chest' },
+      { name: 'Pec Deck',               muscle: 'Chest' },
+      // Back
+      { name: 'Pull-Ups',               muscle: 'Back' },
+      { name: 'Chin-Ups',               muscle: 'Back' },
+      { name: 'Lat Pulldown',           muscle: 'Back' },
+      { name: 'Barbell Row',            muscle: 'Back' },
+      { name: 'Dumbbell Row',           muscle: 'Back' },
+      { name: 'Cable Row',              muscle: 'Back' },
+      { name: 'T-Bar Row',              muscle: 'Back' },
+      { name: 'Face Pull',              muscle: 'Back' },
+      { name: 'Straight-Arm Pulldown',  muscle: 'Back' },
+      { name: 'Rack Pull',              muscle: 'Back' },
+      // Shoulders
+      { name: 'Overhead Press',         muscle: 'Shoulders' },
+      { name: 'DB Shoulder Press',      muscle: 'Shoulders' },
+      { name: 'Arnold Press',           muscle: 'Shoulders' },
+      { name: 'Lateral Raises',         muscle: 'Shoulders' },
+      { name: 'Front Raises',           muscle: 'Shoulders' },
+      { name: 'Rear Delt Flyes',        muscle: 'Shoulders' },
+      { name: 'Upright Row',            muscle: 'Shoulders' },
+      { name: 'Cable Lateral Raises',   muscle: 'Shoulders' },
+      { name: 'Shrugs',                 muscle: 'Shoulders' },
+      // Biceps
+      { name: 'Barbell Curl',           muscle: 'Biceps' },
+      { name: 'Dumbbell Curl',          muscle: 'Biceps' },
+      { name: 'Hammer Curl',            muscle: 'Biceps' },
+      { name: 'Preacher Curl',          muscle: 'Biceps' },
+      { name: 'Cable Curl',             muscle: 'Biceps' },
+      { name: 'Incline DB Curl',        muscle: 'Biceps' },
+      { name: 'Concentration Curl',     muscle: 'Biceps' },
+      // Triceps
+      { name: 'Tricep Pushdown',        muscle: 'Triceps' },
+      { name: 'Skull Crushers',         muscle: 'Triceps' },
+      { name: 'Close-Grip Bench',       muscle: 'Triceps' },
+      { name: 'Overhead Tricep Ext.',   muscle: 'Triceps' },
+      { name: 'Cable Overhead Ext.',    muscle: 'Triceps' },
+      { name: 'Diamond Push-Ups',       muscle: 'Triceps' },
+      // Quads
+      { name: 'Back Squat',             muscle: 'Quads' },
+      { name: 'Front Squat',            muscle: 'Quads' },
+      { name: 'Leg Press',              muscle: 'Quads' },
+      { name: 'Bulgarian Split Squat',  muscle: 'Quads' },
+      { name: 'Lunges',                 muscle: 'Quads' },
+      { name: 'Walking Lunges',         muscle: 'Quads' },
+      { name: 'Hack Squat',             muscle: 'Quads' },
+      { name: 'Leg Extension',          muscle: 'Quads' },
+      { name: 'Step-Ups',               muscle: 'Quads' },
+      // Hamstrings
+      { name: 'Romanian Deadlift',      muscle: 'Hamstrings' },
+      { name: 'Leg Curl',               muscle: 'Hamstrings' },
+      { name: 'Seated Leg Curl',        muscle: 'Hamstrings' },
+      { name: 'Stiff-Leg Deadlift',     muscle: 'Hamstrings' },
+      { name: 'Good Morning',           muscle: 'Hamstrings' },
+      { name: 'Nordic Curl',            muscle: 'Hamstrings' },
+      { name: 'Glute-Ham Raise',        muscle: 'Hamstrings' },
+      // Glutes
+      { name: 'Hip Thrust',             muscle: 'Glutes' },
+      { name: 'Glute Bridge',           muscle: 'Glutes' },
+      { name: 'Sumo Deadlift',          muscle: 'Glutes' },
+      { name: 'Cable Kickback',         muscle: 'Glutes' },
+      { name: 'Sumo Squat',             muscle: 'Glutes' },
+      // Calves
+      { name: 'Standing Calf Raise',    muscle: 'Calves' },
+      { name: 'Seated Calf Raise',      muscle: 'Calves' },
+      { name: 'Leg Press Calf Raise',   muscle: 'Calves' },
+      { name: 'Donkey Calf Raise',      muscle: 'Calves' },
+      // Core
+      { name: 'Plank',                  muscle: 'Core' },
+      { name: 'Ab Rollout',             muscle: 'Core' },
+      { name: 'Cable Crunch',           muscle: 'Core' },
+      { name: 'Hanging Leg Raise',      muscle: 'Core' },
+      { name: 'Russian Twist',          muscle: 'Core' },
+      { name: 'Dead Bug',               muscle: 'Core' },
+      { name: 'Pallof Press',           muscle: 'Core' },
+      { name: 'Side Plank',             muscle: 'Core' },
+      // Full Body
+      { name: 'Deadlift',               muscle: 'Full Body' },
+      { name: 'Power Clean',            muscle: 'Full Body' },
+      { name: 'Clean & Press',          muscle: 'Full Body' },
+      { name: 'Kettlebell Swing',       muscle: 'Full Body' },
+      { name: 'Farmer\'s Walk',         muscle: 'Full Body' },
+      { name: 'Burpees',                muscle: 'Full Body' },
+      { name: 'Box Jump',               muscle: 'Full Body' },
+      { name: 'Thruster',               muscle: 'Full Body' },
+    ];
+
+    // ===== EXERCISE PICKER STATE =====
+    let pickerBlockId      = null;
+    let pickerMuscleFilter = 'All';
+    let pickerSelected     = null;  // { name, muscle }
+
+    function openExPicker(blockId) {
+      pickerBlockId      = blockId;
+      pickerMuscleFilter = 'All';
+      pickerSelected     = null;
+      document.getElementById('picker-search').value       = '';
+      document.getElementById('picker-custom-name').value  = '';
+      document.getElementById('picker-custom-muscle').value = '';
+      document.getElementById('picker-scheme').value       = '';
+      document.getElementById('picker-weight').value       = '';
+      document.getElementById('picker-selected-name').textContent = 'Select an exercise above or type custom below';
+      document.getElementById('btn-picker-add').disabled   = true;
+      renderMuscleChips();
+      renderPickerList();
+      document.getElementById('ex-picker-modal').classList.add('open');
+      document.getElementById('picker-search').focus();
+    }
+
+    function closeExPicker() {
+      document.getElementById('ex-picker-modal').classList.remove('open');
+    }
+
+    function renderMuscleChips() {
+      document.getElementById('muscle-chips').innerHTML = MUSCLES.map(m => `
+        <button class="muscle-chip ${pickerMuscleFilter === m ? 'active' : ''}"
+          onclick="setMuscleFilter('${m}')">${m}</button>
+      `).join('');
+    }
+
+    function setMuscleFilter(muscle) {
+      pickerMuscleFilter = muscle;
+      renderMuscleChips();
+      renderPickerList();
+    }
+
+    function renderPickerList() {
+      const q = document.getElementById('picker-search').value.trim().toLowerCase();
+      const filtered = EXERCISE_LIBRARY.filter(ex => {
+        const matchMuscle = pickerMuscleFilter === 'All' || ex.muscle === pickerMuscleFilter;
+        const matchSearch = !q || ex.name.toLowerCase().includes(q) || ex.muscle.toLowerCase().includes(q);
+        return matchMuscle && matchSearch;
+      });
+
+      // Group by muscle
+      const groups = {};
+      filtered.forEach(ex => {
+        if (!groups[ex.muscle]) groups[ex.muscle] = [];
+        groups[ex.muscle].push(ex);
+      });
+
+      const html = Object.entries(groups).map(([muscle, exs]) => `
+        <div class="picker-group-label">${muscle}</div>
+        ${exs.map(ex => `
+          <div class="picker-ex-row ${pickerSelected?.name === ex.name ? 'selected' : ''}"
+            onclick="selectPickerEx('${esc(ex.name)}','${ex.muscle}')">
+            <span class="picker-ex-name">${esc(ex.name)}</span>
+            <span class="picker-ex-muscle">${ex.muscle}</span>
+          </div>
+        `).join('')}
+      `).join('');
+
+      document.getElementById('picker-list').innerHTML = html || '<div style="padding:20px;color:var(--subtle);font-size:13px;text-align:center">No exercises found</div>';
+    }
+
+    function selectPickerEx(name, muscle) {
+      pickerSelected = { name, muscle };
+      document.getElementById('picker-selected-name').textContent = `Selected: ${name}`;
+      document.getElementById('picker-custom-name').value  = '';
+      document.getElementById('btn-picker-add').disabled   = false;
+      renderPickerList();
+    }
+
+    function onCustomType() {
+      const val = document.getElementById('picker-custom-name').value.trim();
+      if (val) {
+        pickerSelected = null;
+        document.getElementById('picker-selected-name').textContent = `Custom: ${val}`;
+        document.getElementById('btn-picker-add').disabled = false;
+        // Deselect library item
+        renderPickerList();
+      } else {
+        document.getElementById('btn-picker-add').disabled = !pickerSelected;
       }
     }
 
-    async function saveExercise(blockId) {
-      const name   = document.getElementById(`ex-name-${blockId}`).value.trim();
-      const muscle = document.getElementById(`ex-muscle-${blockId}`).value;
-      const scheme = document.getElementById(`ex-scheme-${blockId}`).value.trim();
-      const weight = parseFloat(document.getElementById(`ex-weight-${blockId}`).value) || null;
+    async function saveFromPicker() {
+      const customName   = document.getElementById('picker-custom-name').value.trim();
+      const customMuscle = document.getElementById('picker-custom-muscle').value;
+      const scheme       = document.getElementById('picker-scheme').value.trim();
+      const weight       = parseFloat(document.getElementById('picker-weight').value) || null;
 
-      if (!name) { alert('Exercise name is required'); return; }
+      const name   = customName || pickerSelected?.name;
+      const muscle = customName ? customMuscle : pickerSelected?.muscle;
 
-      // Parse sets from scheme (e.g. "5×5" → 5, "3x12" → 3)
+      if (!name) return;
+
       const setsMatch = scheme.match(/^(\d+)[x×]/i);
-      const sets = setsMatch ? parseInt(setsMatch[1]) : null;
+      const sets      = setsMatch ? parseInt(setsMatch[1]) : null;
+      const nextOrder = (exercises[pickerBlockId]?.length || 0) + 1;
 
-      const nextOrder = (exercises[blockId]?.length || 0) + 1;
-
-      const { data, error } = await db
-        .from('block_exercises')
-        .insert({
-          block_id:        blockId,
-          exercise_name:   name,
-          muscle_group:    muscle || null,
-          sets:            sets,
-          rep_scheme:      scheme || null,
-          target_weight_kg: weight,
-          sort_order:      nextOrder,
-        })
-        .select().single();
+      const { data, error } = await db.from('block_exercises').insert({
+        block_id:         pickerBlockId,
+        exercise_name:    name,
+        muscle_group:     muscle || null,
+        sets,
+        rep_scheme:       scheme || null,
+        target_weight_kg: weight,
+        sort_order:       nextOrder,
+      }).select().single();
 
       if (error) { alert(error.message); return; }
 
-      if (!exercises[blockId]) exercises[blockId] = [];
-      exercises[blockId].push(data);
+      if (!exercises[pickerBlockId]) exercises[pickerBlockId] = [];
+      exercises[pickerBlockId].push(data);
+      closeExPicker();
+      renderEditor();
+    }
+
+    // ===== EDIT EXERCISE =====
+    let editExId    = null;
+    let editBlockId = null;
+
+    function openEditExercise(exId, blockId) {
+      editExId    = exId;
+      editBlockId = blockId;
+      const ex    = exercises[blockId]?.find(e => e.id === exId);
+      if (!ex) return;
+
+      document.getElementById('edit-ex-name').value   = ex.exercise_name || '';
+      document.getElementById('edit-ex-muscle').value = ex.muscle_group  || '';
+      document.getElementById('edit-ex-scheme').value = ex.rep_scheme    || '';
+      document.getElementById('edit-ex-weight').value = ex.target_weight_kg || '';
+      document.getElementById('edit-ex-error').style.display = 'none';
+      openModal('edit-ex-modal');
+    }
+
+    async function saveEditExercise() {
+      const btn    = document.getElementById('edit-ex-save-btn');
+      const name   = document.getElementById('edit-ex-name').value.trim();
+      const muscle = document.getElementById('edit-ex-muscle').value;
+      const scheme = document.getElementById('edit-ex-scheme').value.trim();
+      const weight = parseFloat(document.getElementById('edit-ex-weight').value) || null;
+
+      if (!name) { showModalError('edit-ex-error', 'Exercise name is required.'); return; }
+
+      const setsMatch = scheme.match(/^(\d+)[x×]/i);
+      const sets      = setsMatch ? parseInt(setsMatch[1]) : null;
+
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      const { error } = await db.from('block_exercises').update({
+        exercise_name:    name,
+        muscle_group:     muscle || null,
+        sets,
+        rep_scheme:       scheme || null,
+        target_weight_kg: weight,
+      }).eq('id', editExId);
+
+      if (error) { showModalError('edit-ex-error', error.message); btn.disabled = false; btn.textContent = 'Save Changes'; return; }
+
+      // Update local state
+      const idx = exercises[editBlockId]?.findIndex(e => e.id === editExId);
+      if (idx >= 0) {
+        exercises[editBlockId][idx] = {
+          ...exercises[editBlockId][idx],
+          exercise_name: name, muscle_group: muscle || null,
+          sets, rep_scheme: scheme || null, target_weight_kg: weight,
+        };
+      }
+
+      closeModal('edit-ex-modal');
+      btn.disabled = false; btn.textContent = 'Save Changes';
       renderEditor();
     }
 
