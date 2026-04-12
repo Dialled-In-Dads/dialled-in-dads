@@ -1003,8 +1003,9 @@
             <input type="checkbox" id="save-to-lib"> Save to my exercise library
           </label>
         </div>
-        <div class="picker-scheme-row">
-          <input class="picker-scheme-input" id="picker-scheme" placeholder="Sets × Reps (e.g. 4×8)">
+        <div class="picker-scheme-row" style="grid-template-columns:80px 1fr 1fr">
+          <input class="picker-scheme-input" id="picker-sets" type="number" min="1" max="20" placeholder="Sets #">
+          <input class="picker-scheme-input" id="picker-scheme" placeholder="Reps / scheme (e.g. 8-12)">
           <input class="picker-scheme-input" id="picker-weight" type="number" step="0.5" min="0" placeholder="Target kg (optional)">
         </div>
         <div class="picker-actions">
@@ -1028,15 +1029,19 @@
         <select class="modal-select" id="edit-ex-muscle">
           <option value="">— Select —</option>
           <option>Chest</option><option>Back</option><option>Shoulders</option>
-          <option>Biceps</option><option>Triceps</option>
+          <option>Biceps</option><option>Triceps</option><option>Forearms</option>
           <option>Quads</option><option>Hamstrings</option><option>Glutes</option><option>Calves</option>
           <option>Core</option><option>Full Body</option>
         </select>
       </div>
-      <div class="edit-modal-grid">
+      <div class="edit-modal-grid" style="grid-template-columns:80px 1fr 1fr">
         <div class="modal-field">
-          <label class="modal-label">Sets × Reps</label>
-          <input class="modal-input" id="edit-ex-scheme" placeholder="e.g. 4×8">
+          <label class="modal-label">Sets #</label>
+          <input class="modal-input" id="edit-ex-sets" type="number" min="1" max="20" placeholder="e.g. 4">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Reps / scheme</label>
+          <input class="modal-input" id="edit-ex-scheme" placeholder="e.g. 8-12">
         </div>
         <div class="modal-field">
           <label class="modal-label">Target kg</label>
@@ -1383,8 +1388,12 @@
 
     // ===== VOLUME HELPERS =====
     function parseSets(scheme, fallbackSets) {
-      const m = (scheme || '').match(/^(\d+)[x×]/i);
-      return m ? parseInt(m[1]) : (fallbackSets || 0);
+      // Prefer explicit sets column value
+      const explicit = parseInt(fallbackSets);
+      if (!isNaN(explicit) && explicit > 0) return explicit;
+      // Fall back to parsing scheme string: "4×8", "4 × 8", "4x8" etc.
+      const m = (scheme || '').match(/^(\d+)\s*[x×]\s*/i);
+      return m ? parseInt(m[1]) : 0;
     }
 
     function calcVolume(blockList, exMap) {
@@ -1511,7 +1520,7 @@
                     <div class="exercise-name">${esc(ex.exercise_name)}</div>
                     ${ex.muscle_group ? `<div class="exercise-muscle">${esc(ex.muscle_group)}</div>` : ''}
                   </td>
-                  <td><span class="exercise-scheme">${esc(ex.rep_scheme || (ex.sets ? ex.sets+'×?' : '—'))}</span></td>
+                  <td><span class="exercise-scheme">${ex.sets ? ex.sets + ' × ' : ''}${esc(ex.rep_scheme || (ex.sets ? '' : '—'))}</span></td>
                   <td><span class="exercise-weight">${ex.target_weight_kg ? ex.target_weight_kg + 'kg' : '—'}</span></td>
                   <td style="display:flex;gap:2px;align-items:center">
                     <button class="btn-edit" onclick="openEditExercise('${ex.id}','${b.id}')" title="Edit">✏️</button>
@@ -1687,6 +1696,7 @@
       document.getElementById('picker-search').value       = '';
       document.getElementById('picker-custom-name').value  = '';
       document.getElementById('picker-custom-muscle').value = '';
+      document.getElementById('picker-sets').value         = '';
       document.getElementById('picker-scheme').value       = '';
       document.getElementById('picker-weight').value       = '';
       document.getElementById('picker-selected-name').textContent = 'Select an exercise above or type custom below';
@@ -1768,6 +1778,7 @@
     async function saveFromPicker() {
       const customName   = document.getElementById('picker-custom-name').value.trim();
       const customMuscle = document.getElementById('picker-custom-muscle').value;
+      const setsVal      = parseInt(document.getElementById('picker-sets').value) || null;
       const scheme       = document.getElementById('picker-scheme').value.trim();
       const weight       = parseFloat(document.getElementById('picker-weight').value) || null;
 
@@ -1781,8 +1792,9 @@
         saveExToLibrary(name, muscle);
       }
 
-      const setsMatch = scheme.match(/^(\d+)[x×]/i);
-      const sets      = setsMatch ? parseInt(setsMatch[1]) : null;
+      // Use explicit sets field; fall back to parsing scheme string
+      const setsMatch = scheme.match(/^(\d+)\s*[x×]\s*/i);
+      const sets      = setsVal || (setsMatch ? parseInt(setsMatch[1]) : null);
       const nextOrder = (exercises[pickerBlockId]?.length || 0) + 1;
 
       const { data, error } = await db.from('block_exercises').insert({
@@ -1815,6 +1827,7 @@
 
       document.getElementById('edit-ex-name').value   = ex.exercise_name || '';
       document.getElementById('edit-ex-muscle').value = ex.muscle_group  || '';
+      document.getElementById('edit-ex-sets').value   = ex.sets          || '';
       document.getElementById('edit-ex-scheme').value = ex.rep_scheme    || '';
       document.getElementById('edit-ex-weight').value = ex.target_weight_kg || '';
       document.getElementById('edit-ex-error').style.display = 'none';
@@ -1825,13 +1838,15 @@
       const btn    = document.getElementById('edit-ex-save-btn');
       const name   = document.getElementById('edit-ex-name').value.trim();
       const muscle = document.getElementById('edit-ex-muscle').value;
+      const setsVal = parseInt(document.getElementById('edit-ex-sets').value) || null;
       const scheme = document.getElementById('edit-ex-scheme').value.trim();
       const weight = parseFloat(document.getElementById('edit-ex-weight').value) || null;
 
       if (!name) { showModalError('edit-ex-error', 'Exercise name is required.'); return; }
 
-      const setsMatch = scheme.match(/^(\d+)[x×]/i);
-      const sets      = setsMatch ? parseInt(setsMatch[1]) : null;
+      // Use explicit sets field; fall back to parsing scheme
+      const setsMatch = scheme.match(/^(\d+)\s*[x×]\s*/i);
+      const sets      = setsVal || (setsMatch ? parseInt(setsMatch[1]) : null);
 
       btn.disabled = true; btn.textContent = 'Saving…';
 
