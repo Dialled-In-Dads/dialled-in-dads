@@ -398,9 +398,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../auth.js"></script>
   <script>
-    let clientData  = null;
-    let goalsData   = null;
+    let clientData   = null;
+    let goalsData    = null;
     let feelingScore = null;
+    let existingCI   = null;   // set if already checked in today
 
     const today     = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
@@ -417,53 +418,32 @@
       clientData = await getCurrentClient(session.user.id);
       if (!clientData) return;
 
-      // Already checked in today?
-      const { data: todayCI } = await db
-        .from('check_ins')
-        .select('id')
-        .eq('client_id', clientData.id)
-        .eq('check_in_date', today)
-        .maybeSingle();
+      // Fetch today's check-in (full row) + yesterday + goals in parallel
+      const [todayCIRes, yestCIRes, goalsRes] = await Promise.all([
+        db.from('check_ins').select('*')
+          .eq('client_id', clientData.id).eq('check_in_date', today).maybeSingle(),
+        db.from('check_ins').select('id')
+          .eq('client_id', clientData.id).eq('check_in_date', yesterday).maybeSingle(),
+        db.from('client_goals').select('*')
+          .eq('client_id', clientData.id)
+          .lte('effective_from', today)
+          .order('effective_from', { ascending: false })
+          .limit(1).maybeSingle(),
+      ]);
 
-      if (todayCI) { renderDone(); return; }
+      existingCI = todayCIRes.data || null;
+      goalsData  = goalsRes.data   || null;
 
-      // Check-in yesterday?
-      const { data: yestCI } = await db
-        .from('check_ins')
-        .select('id')
-        .eq('client_id', clientData.id)
-        .eq('check_in_date', yesterday)
-        .maybeSingle();
+      // Pre-set feeling from existing check-in
+      if (existingCI?.feeling_score) feelingScore = existingCI.feeling_score;
 
-      // Latest goals
-      const { data: goals } = await db
-        .from('client_goals')
-        .select('*')
-        .eq('client_id', clientData.id)
-        .lte('effective_from', today)
-        .order('effective_from', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      goalsData = goals;
-
-      renderForm(!yestCI);
+      renderForm(!yestCIRes.data, !!existingCI);
     })();
 
-    // ---- Already checked in ----
-    function renderDone() {
-      document.getElementById('main-content').innerHTML = `
-        <div class="done-state">
-          <div class="done-icon">✓</div>
-          <div class="done-title">Already Checked In</div>
-          <p class="done-sub">You've already logged today.<br>Come back tomorrow — keep the streak alive.</p>
-        </div>
-      `;
-    }
-
     // ---- Form ----
-    function renderForm(missedYesterday) {
-      const g = goalsData || {};
+    function renderForm(missedYesterday, alreadyLogged) {
+      const g  = goalsData  || {};
+      const ci = existingCI || {};
 
       const hintCals   = g.calorie_goal    ? `Goal: <strong>${g.calorie_goal.toLocaleString()} kcal</strong>` : '';
       const hintProt   = g.protein_goal_g  ? `Goal: <strong>${g.protein_goal_g}g</strong>` : '';
@@ -481,7 +461,12 @@
 
       document.getElementById('main-content').innerHTML = `
 
-        ${missedYesterday ? `
+        ${alreadyLogged ? `
+          <div class="missed-banner" style="background:rgba(46,204,138,0.08);border-color:rgba(46,204,138,0.22);">
+            <div class="missed-banner-title" style="color:var(--green)">✓ Already logged today</div>
+            <div class="missed-banner-body">Made a mistake? Edit below and tap Update.</div>
+          </div>
+        ` : missedYesterday ? `
           <div class="missed-banner">
             <div class="missed-banner-title">Yesterday was a miss — no worries.</div>
             <div class="missed-banner-body">What got in the way? Let's fix the system.</div>
@@ -499,7 +484,7 @@
               ${hintWeight ? `<span class="goal-hint">${hintWeight}</span>` : ''}
             </div>
             <div class="input-wrap">
-              <input type="number" id="f-weight" placeholder="e.g. 82.5" step="0.1" min="30" max="300" inputmode="decimal">
+              <input type="number" id="f-weight" placeholder="e.g. 82.5" step="0.1" min="30" max="300" inputmode="decimal" value="${ci.weight_kg ?? ''}">
               <span class="unit">kg</span>
             </div>
           </div>
@@ -514,7 +499,7 @@
               ${hintCals ? `<span class="goal-hint">${hintCals}</span>` : ''}
             </div>
             <div class="input-wrap">
-              <input type="number" id="f-calories" placeholder="e.g. 2200" step="1" min="0" inputmode="numeric">
+              <input type="number" id="f-calories" placeholder="e.g. 2200" step="1" min="0" inputmode="numeric" value="${ci.calories_yesterday ?? ''}">
               <span class="unit">kcal</span>
             </div>
           </div>
@@ -524,7 +509,7 @@
               ${hintProt ? `<span class="goal-hint">${hintProt}</span>` : ''}
             </div>
             <div class="input-wrap">
-              <input type="number" id="f-protein" placeholder="e.g. 160" step="1" min="0" inputmode="numeric">
+              <input type="number" id="f-protein" placeholder="e.g. 160" step="1" min="0" inputmode="numeric" value="${ci.protein_yesterday_g ?? ''}">
               <span class="unit">g</span>
             </div>
           </div>
@@ -534,7 +519,7 @@
               ${hintFat ? `<span class="goal-hint">${hintFat}</span>` : ''}
             </div>
             <div class="input-wrap">
-              <input type="number" id="f-fat" placeholder="e.g. 70" step="1" min="0" inputmode="numeric">
+              <input type="number" id="f-fat" placeholder="e.g. 70" step="1" min="0" inputmode="numeric" value="${ci.fat_yesterday_g ?? ''}">
               <span class="unit">g</span>
             </div>
           </div>
@@ -548,7 +533,7 @@
               <span class="field-label-text">Steps</span>
               ${hintSteps ? `<span class="goal-hint">${hintSteps}</span>` : ''}
             </div>
-            <input type="number" id="f-steps" placeholder="e.g. 8500" step="1" min="0" inputmode="numeric">
+            <input type="number" id="f-steps" placeholder="e.g. 8500" step="1" min="0" inputmode="numeric" value="${ci.steps_yesterday ?? ''}">
           </div>
         </div>
 
@@ -557,7 +542,7 @@
           <div class="card-title">How Are You Feeling Today?</div>
           <div class="feeling-row" id="feeling-row">
             ${feelings.map(f => `
-              <button type="button" class="feeling-btn" data-score="${f.score}" onclick="pickFeeling(${f.score})">
+              <button type="button" class="feeling-btn ${ci.feeling_score === f.score ? 'active' : ''}" data-score="${f.score}" onclick="pickFeeling(${f.score})">
                 <span class="feeling-emoji">${f.emoji}</span>
                 <span class="feeling-num">${f.label}</span>
               </button>
@@ -568,10 +553,12 @@
         <!-- Notes -->
         <div class="card">
           <div class="card-title">Notes for Your Coach <span style="color:var(--subtle);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
-          <textarea id="f-notes" placeholder="How did yesterday go? Anything to flag?"></textarea>
+          <textarea id="f-notes" placeholder="How did yesterday go? Anything to flag?">${ci.client_notes ?? ''}</textarea>
         </div>
 
-        <button class="btn-submit" id="submit-btn" onclick="submit()">Log Check-In</button>
+        <button class="btn-submit" id="submit-btn" onclick="submit()">
+          ${alreadyLogged ? 'Update Check-In' : 'Log Check-In'}
+        </button>
       `;
     }
 
@@ -606,24 +593,37 @@
       btn.disabled = true;
       btn.textContent = 'Saving…';
 
+      const payload = {
+        weight_kg:           weight,
+        calories_yesterday:  calories,
+        protein_yesterday_g: protein,
+        fat_yesterday_g:     fat,
+        steps_yesterday:     steps,
+        feeling_score:       feelingScore,
+        client_notes:        notes,
+      };
+
       try {
-        const { error } = await db.from('check_ins').insert({
-          client_id:           clientData.id,
-          goal_id:             goalsData?.id ?? null,
-          check_in_date:       today,
-          weight_kg:           weight,
-          calories_yesterday:  calories,
-          protein_yesterday_g: protein,
-          fat_yesterday_g:     fat,
-          steps_yesterday:     steps,
-          feeling_score:       feelingScore,
-          client_notes:        notes,
-          win_completed:       false,
-        });
+        let error;
+
+        if (existingCI) {
+          // UPDATE existing row
+          ({ error } = await db.from('check_ins')
+            .update(payload)
+            .eq('id', existingCI.id));
+        } else {
+          // INSERT new row
+          ({ error } = await db.from('check_ins').insert({
+            client_id:     clientData.id,
+            goal_id:       goalsData?.id ?? null,
+            check_in_date: today,
+            win_completed: false,
+            ...payload,
+          }));
+        }
 
         if (error) throw error;
 
-        // Redirect to dashboard
         goTo('/client/index.html');
 
       } catch (err) {
@@ -631,7 +631,7 @@
         errEl.textContent = err.message || 'Something went wrong. Please try again.';
         errEl.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Log Check-In';
+        btn.textContent = existingCI ? 'Update Check-In' : 'Log Check-In';
       }
     }
   </script>
