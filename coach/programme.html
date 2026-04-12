@@ -244,6 +244,23 @@
     .week-header:hover { border-color: var(--subtle); }
     .week-header.open  { border-color: var(--orange); border-radius: 8px 8px 0 0; }
 
+    .btn-copy-week {
+      background: none; border: none; color: var(--subtle);
+      font-size: 13px; cursor: pointer; padding: 2px 6px;
+      border-radius: 4px; line-height: 1; flex-shrink: 0;
+      transition: color 0.12s, background 0.12s;
+    }
+    .btn-copy-week:hover { color: var(--blue); background: rgba(91,155,213,0.1); }
+
+    .btn-copy-day {
+      background: none; border: none; color: transparent;
+      font-size: 11px; cursor: pointer; padding: 1px 4px;
+      border-radius: 3px; margin-left: auto; flex-shrink: 0;
+      transition: color 0.12s, background 0.12s;
+    }
+    .day-item:hover .btn-copy-day { color: var(--subtle); }
+    .btn-copy-day:hover { color: var(--blue) !important; background: rgba(91,155,213,0.1); }
+
     .week-label {
       font-size: 12px;
       font-weight: 600;
@@ -1016,7 +1033,10 @@
       }
       el.innerHTML = programmes.map(p => `
         <div class="prog-item ${selProg?.id === p.id ? 'active' : ''}" onclick="selectProg('${p.id}')">
-          <div class="prog-name">${esc(p.name)}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+            <div class="prog-name" style="flex:1">${esc(p.name)}</div>
+            <button class="btn-copy-week" title="Copy programme" onclick="event.stopPropagation();copyProgramme('${p.id}')">⎘</button>
+          </div>
           <div class="prog-meta">${p.total_weeks} weeks</div>
         </div>
       `).join('');
@@ -1071,6 +1091,7 @@
           <div class="week-section">
             <div class="week-header ${isOpen ? 'open' : ''}" onclick="toggleWeek('${w.id}')">
               <span class="week-label">Week ${w.week_number}</span>
+              <button class="btn-copy-week" title="Copy week" onclick="event.stopPropagation();copyWeek('${w.id}')">⎘</button>
               <span class="week-chevron">▼</span>
             </div>
             <div class="week-days ${isOpen ? 'open' : ''}">
@@ -1079,6 +1100,7 @@
                   <div class="day-type-dot ${d.day_type}"></div>
                   <div class="day-name">${esc(d.label || (d.day_type === 'rest' ? 'Rest Day' : 'Workout'))}</div>
                   <div class="day-num">D${d.day_number}</div>
+                  <button class="btn-copy-day" title="Copy day" onclick="event.stopPropagation();copyDay('${d.id}','${w.id}')">⎘</button>
                 </div>
               `).join('')}
               <div style="padding:6px 8px">
@@ -1107,6 +1129,110 @@
       days[data.id] = [];
       selWeek = data.id;
       renderStructure();
+    }
+
+    // ===== DEEP COPY HELPERS =====
+
+    // Deep-copy a single day (blocks + exercises) into a target week
+    async function deepCopyDay(sourceDayId, targetWeekId, dayNumber, dayType, label) {
+      const { data: newDay, error } = await db.from('programme_days')
+        .insert({ week_id: targetWeekId, day_number: dayNumber, day_type: dayType, label })
+        .select().single();
+      if (error || dayType !== 'workout') return newDay;
+
+      const { data: sourceBlocks } = await db.from('workout_blocks')
+        .select('*').eq('day_id', sourceDayId).order('sort_order');
+
+      for (const block of (sourceBlocks || [])) {
+        const { data: newBlock } = await db.from('workout_blocks').insert({
+          day_id: newDay.id, tier: block.tier,
+          block_type: block.block_type, sort_order: block.sort_order,
+        }).select().single();
+
+        const { data: sourceExs } = await db.from('block_exercises')
+          .select('*').eq('block_id', block.id).order('sort_order');
+
+        if (sourceExs?.length) {
+          await db.from('block_exercises').insert(sourceExs.map(ex => ({
+            block_id:         newBlock.id,
+            exercise_name:    ex.exercise_name,
+            muscle_group:     ex.muscle_group,
+            sets:             ex.sets,
+            rep_scheme:       ex.rep_scheme,
+            target_weight_kg: ex.target_weight_kg,
+            sort_order:       ex.sort_order,
+          })));
+        }
+      }
+      return newDay;
+    }
+
+    // Copy a whole week as a new week at the end
+    async function copyWeek(weekId) {
+      if (!selProg) return;
+      const sourceDays = days[weekId] || [];
+      const nextNum    = (weeks.length || 0) + 1;
+
+      const { data: newWeek } = await db.from('programme_weeks')
+        .insert({ programme_id: selProg.id, week_number: nextNum, label: `Week ${nextNum}` })
+        .select().single();
+
+      days[newWeek.id] = [];
+      for (const d of sourceDays) {
+        const newDay = await deepCopyDay(d.id, newWeek.id, d.day_number, d.day_type, d.label);
+        if (newDay) days[newWeek.id].push(newDay);
+      }
+
+      weeks.push(newWeek);
+      selWeek = newWeek.id;
+      renderStructure();
+    }
+
+    // Copy a single day into the same week
+    async function copyDay(dayId, weekId) {
+      const sourceDay = (days[weekId] || []).find(d => d.id === dayId);
+      if (!sourceDay) return;
+      const nextNum = (days[weekId]?.length || 0) + 1;
+      const newDay  = await deepCopyDay(dayId, weekId, nextNum, sourceDay.day_type, sourceDay.label);
+      if (!newDay) return;
+      days[weekId] = [...(days[weekId] || []), newDay].sort((a, b) => a.day_number - b.day_number);
+      renderStructure();
+      await selectDay(newDay.id, weekId);
+    }
+
+    // Copy an entire programme (all weeks → days → blocks → exercises)
+    async function copyProgramme(progId) {
+      const source = programmes.find(p => p.id === progId);
+      if (!source) return;
+
+      const newName = source.name + ' (Copy)';
+      const { data: newProg } = await db.from('programmes').insert({
+        coach_id:    coachData.id,
+        name:        newName,
+        description: source.description,
+        total_weeks: source.total_weeks,
+      }).select().single();
+
+      // Load source weeks + days
+      const { data: sourceWeeks } = await db.from('programme_weeks')
+        .select('*').eq('programme_id', progId).order('week_number');
+
+      for (const w of (sourceWeeks || [])) {
+        const { data: newWeek } = await db.from('programme_weeks').insert({
+          programme_id: newProg.id, week_number: w.week_number, label: w.label,
+        }).select().single();
+
+        const { data: sourceDays } = await db.from('programme_days')
+          .select('*').eq('week_id', w.id).order('day_number');
+
+        for (const d of (sourceDays || [])) {
+          await deepCopyDay(d.id, newWeek.id, d.day_number, d.day_type, d.label);
+        }
+      }
+
+      programmes.push(newProg);
+      renderProgList();
+      await selectProg(newProg.id);
     }
 
     // ===== DAYS =====
