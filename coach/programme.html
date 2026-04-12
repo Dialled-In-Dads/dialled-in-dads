@@ -555,6 +555,64 @@
       display: none;
     }
 
+    /* ===== VOLUME SUMMARY ===== */
+    .volume-summary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+    }
+    .volume-summary-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--subtle);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .volume-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .vol-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .vol-chip span {
+      font-family: 'Anton', sans-serif;
+      font-size: 13px;
+      color: var(--orange);
+    }
+    .vol-chip.high span { color: var(--green); }
+    .vol-chip.low  span { color: var(--subtle); }
+
+    /* ===== SAVE TO LIBRARY ===== */
+    .save-lib-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      margin-bottom: 10px;
+    }
+    .save-lib-row label {
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .save-lib-row input[type=checkbox] { accent-color: var(--orange); width: 14px; height: 14px; }
+
     /* ===== SCROLLBARS ===== */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -935,10 +993,15 @@
           <select class="picker-custom-select" id="picker-custom-muscle">
             <option value="">Muscle group</option>
             <option>Chest</option><option>Back</option><option>Shoulders</option>
-            <option>Biceps</option><option>Triceps</option>
+            <option>Biceps</option><option>Triceps</option><option>Forearms</option>
             <option>Quads</option><option>Hamstrings</option><option>Glutes</option><option>Calves</option>
             <option>Core</option><option>Full Body</option>
           </select>
+        </div>
+        <div class="save-lib-row" id="save-lib-row" style="display:none">
+          <label>
+            <input type="checkbox" id="save-to-lib"> Save to my exercise library
+          </label>
         </div>
         <div class="picker-scheme-row">
           <input class="picker-scheme-input" id="picker-scheme" placeholder="Sets × Reps (e.g. 4×8)">
@@ -1113,8 +1176,11 @@
     }
 
     function toggleWeek(weekId) {
-      selWeek = selWeek === weekId ? null : weekId;
+      const wasOpen = selWeek === weekId;
+      selWeek = wasOpen ? null : weekId;
+      if (!wasOpen && selDay?.week_id !== weekId) selDay = null;
       renderStructure();
+      if (selWeek && !selDay) showWeekVolume(selWeek);
     }
 
     async function addWeek() {
@@ -1315,13 +1381,98 @@
       renderEditor();
     }
 
+    // ===== VOLUME HELPERS =====
+    function parseSets(scheme, fallbackSets) {
+      const m = (scheme || '').match(/^(\d+)[x×]/i);
+      return m ? parseInt(m[1]) : (fallbackSets || 0);
+    }
+
+    function calcVolume(blockList, exMap) {
+      const vol = {};
+      for (const b of blockList) {
+        for (const ex of (exMap[b.id] || [])) {
+          const muscle = ex.muscle_group || 'Other';
+          const sets   = parseSets(ex.rep_scheme, ex.sets);
+          vol[muscle]  = (vol[muscle] || 0) + sets;
+        }
+      }
+      return vol;
+    }
+
+    function renderVolumeBar(blockList, exMap) {
+      const vol = calcVolume(blockList, exMap);
+      const entries = Object.entries(vol).sort((a, b) => b[1] - a[1]);
+      if (!entries.length) return '';
+      const max = Math.max(...entries.map(e => e[1]));
+      const chips = entries.map(([muscle, sets]) => {
+        const cls = sets >= 12 ? 'high' : sets <= 4 ? 'low' : '';
+        return `<div class="vol-chip ${cls}">${muscle} <span>${sets}</span></div>`;
+      }).join('');
+      return `<div class="volume-summary">
+        <div class="volume-summary-title">Day Volume · Sets per Muscle</div>
+        <div class="volume-chips">${chips}</div>
+      </div>`;
+    }
+
+    // Week volume: aggregate across all loaded days in a week
+    async function getWeekVolume(weekId) {
+      const wDays = days[weekId] || [];
+      const vol   = {};
+      for (const d of wDays) {
+        if (d.day_type !== 'workout') continue;
+        // Load blocks + exercises if not already loaded
+        const { data: bks } = await db.from('workout_blocks')
+          .select('*').eq('day_id', d.id).order('sort_order');
+        const exMap = {};
+        for (const b of (bks || [])) {
+          const { data: exs } = await db.from('block_exercises')
+            .select('*').eq('block_id', b.id);
+          exMap[b.id] = exs || [];
+        }
+        const dayVol = calcVolume(bks || [], exMap);
+        for (const [m, s] of Object.entries(dayVol)) {
+          vol[m] = (vol[m] || 0) + s;
+        }
+      }
+      return vol;
+    }
+
+    // Show week volume in editor panel
+    async function showWeekVolume(weekId) {
+      const w   = weeks.find(w => w.id === weekId);
+      const vol = await getWeekVolume(weekId);
+      const entries = Object.entries(vol).sort((a, b) => b[1] - a[1]);
+
+      const el = document.getElementById('editor-content');
+      const chips = entries.length
+        ? entries.map(([muscle, sets]) => {
+            const cls = sets >= 20 ? 'high' : sets <= 6 ? 'low' : '';
+            return `<div class="vol-chip ${cls}">${muscle} <span>${sets}</span></div>`;
+          }).join('')
+        : '<span style="color:var(--subtle);font-size:13px">No exercises logged yet</span>';
+
+      el.innerHTML = `
+        <div class="editor-header">
+          <div class="editor-day-title">Week ${w?.week_number} Volume</div>
+          <div class="editor-day-meta">Total sets per muscle group across all workout days</div>
+        </div>
+        <div class="editor-body">
+          <div class="volume-summary" style="margin-bottom:0">
+            <div class="volume-summary-title">Week Total · Sets per Muscle</div>
+            <div class="volume-chips">${chips}</div>
+          </div>
+          <div style="margin-top:20px;font-size:12px;color:var(--subtle)">Select a day to edit its exercises</div>
+        </div>`;
+    }
+
     // ===== EDITOR =====
     function renderEditor() {
       const el = document.getElementById('editor-content');
 
       if (!selDay) {
+        if (selWeek) { showWeekVolume(selWeek); return; }
         el.innerHTML = `<div class="panel-body" style="display:flex;align-items:center;justify-content:center">
-          <div class="panel-empty">Select a day to edit its exercises.</div>
+          <div class="panel-empty">Select a week or day to get started.</div>
         </div>`;
         return;
       }
@@ -1390,6 +1541,7 @@
           <div class="editor-day-meta">Week ${weekNum} · Day ${selDay.day_number} · Workout</div>
         </div>
         <div class="editor-body">
+          ${renderVolumeBar(blocks, exercises)}
           ${blocksHtml || '<div class="panel-empty">No blocks found for this day.</div>'}
         </div>
         <div class="assign-section">
@@ -1399,7 +1551,25 @@
     }
 
     // ===== EXERCISE LIBRARY =====
-    const MUSCLES = ['All','Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core','Full Body'];
+    const MUSCLES = ['All','Chest','Back','Shoulders','Biceps','Triceps','Forearms','Quads','Hamstrings','Glutes','Calves','Core','Full Body'];
+
+    // ===== CUSTOM EXERCISE LIBRARY (localStorage) =====
+    function loadCustomExercises() {
+      try { return JSON.parse(localStorage.getItem('did_custom_exercises') || '[]'); }
+      catch { return []; }
+    }
+    function saveExToLibrary(name, muscle) {
+      const custom = loadCustomExercises();
+      if (!custom.find(e => e.name.toLowerCase() === name.toLowerCase())) {
+        custom.push({ name, muscle: muscle || 'Other', custom: true });
+        localStorage.setItem('did_custom_exercises', JSON.stringify(custom));
+      }
+    }
+    function getFullLibrary() {
+      const custom = loadCustomExercises();
+      const builtIn = EXERCISE_LIBRARY.map(e => e.name.toLowerCase());
+      return [...EXERCISE_LIBRARY, ...custom.filter(c => !builtIn.includes(c.name.toLowerCase()))];
+    }
 
     const EXERCISE_LIBRARY = [
       // Chest
@@ -1434,6 +1604,13 @@
       { name: 'Upright Row',            muscle: 'Shoulders' },
       { name: 'Cable Lateral Raises',   muscle: 'Shoulders' },
       { name: 'Shrugs',                 muscle: 'Shoulders' },
+      // Forearms
+      { name: 'Wrist Curl',             muscle: 'Forearms' },
+      { name: 'Reverse Wrist Curl',     muscle: 'Forearms' },
+      { name: 'Reverse Curl',           muscle: 'Forearms' },
+      { name: 'Wrist Roller',           muscle: 'Forearms' },
+      { name: 'Farmer\'s Hold',         muscle: 'Forearms' },
+      { name: 'Dead Hang',              muscle: 'Forearms' },
       // Biceps
       { name: 'Barbell Curl',           muscle: 'Biceps' },
       { name: 'Dumbbell Curl',          muscle: 'Biceps' },
@@ -1539,7 +1716,7 @@
 
     function renderPickerList() {
       const q = document.getElementById('picker-search').value.trim().toLowerCase();
-      const filtered = EXERCISE_LIBRARY.filter(ex => {
+      const filtered = getFullLibrary().filter(ex => {
         const matchMuscle = pickerMuscleFilter === 'All' || ex.muscle === pickerMuscleFilter;
         const matchSearch = !q || ex.name.toLowerCase().includes(q) || ex.muscle.toLowerCase().includes(q);
         return matchMuscle && matchSearch;
@@ -1580,10 +1757,11 @@
         pickerSelected = null;
         document.getElementById('picker-selected-name').textContent = `Custom: ${val}`;
         document.getElementById('btn-picker-add').disabled = false;
-        // Deselect library item
+        document.getElementById('save-lib-row').style.display = 'flex';
         renderPickerList();
       } else {
         document.getElementById('btn-picker-add').disabled = !pickerSelected;
+        document.getElementById('save-lib-row').style.display = 'none';
       }
     }
 
@@ -1597,6 +1775,11 @@
       const muscle = customName ? customMuscle : pickerSelected?.muscle;
 
       if (!name) return;
+
+      // Save to library if checkbox ticked
+      if (customName && document.getElementById('save-to-lib')?.checked) {
+        saveExToLibrary(name, muscle);
+      }
 
       const setsMatch = scheme.match(/^(\d+)[x×]/i);
       const sets      = setsMatch ? parseInt(setsMatch[1]) : null;
