@@ -715,11 +715,11 @@
 
       const habCalsLogged = thisWeek.filter(c => c.calories_yesterday != null).length;
       const habCalsHit    = client.goal_calories
-        ? thisWeek.filter(c => c.calories_yesterday != null && c.calories_yesterday <= goals.calorie_goal * 1.05).length
+        ? thisWeek.filter(c => c.calories_yesterday != null && c.calories_yesterday <= client.goal_calories * 1.05).length
         : null;
       const habWorkout    = thisWeek.filter(c => c.win_completed).length;
       const habSteps      = client.goal_steps
-        ? thisWeek.filter(c => c.steps_yesterday != null && c.steps_yesterday >= goals.step_goal).length
+        ? thisWeek.filter(c => c.steps_yesterday != null && c.steps_yesterday >= client.goal_steps).length
         : null;
 
       // Weight chart data (last 14 check-ins with weight, chronological)
@@ -751,12 +751,12 @@
         <div class="stat-card">
           <div class="stat-label">Cals Yesterday</div>
           <div class="stat-value">${latest?.calories_yesterday != null ? latest.calories_yesterday.toLocaleString() : '—'}<span class="unit">kcal</span></div>
-          <div class="stat-sub">${client.goal_calories ? `Goal: ${goals.calorie_goal.toLocaleString()}` : 'No goal set'}</div>
+          <div class="stat-sub">${client.goal_calories ? `Goal: ${client.goal_calories.toLocaleString()}` : 'No goal set'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Steps Yesterday</div>
           <div class="stat-value">${latest?.steps_yesterday != null ? (latest.steps_yesterday >= 1000 ? (latest.steps_yesterday/1000).toFixed(1)+'k' : latest.steps_yesterday) : '—'}</div>
-          <div class="stat-sub">${client.goal_steps ? `Goal: ${(goals.step_goal/1000).toFixed(0)}k` : 'No goal set'}</div>
+          <div class="stat-sub">${client.goal_steps ? `Goal: ${(client.goal_steps/1000).toFixed(0)}k` : 'No goal set'}</div>
         </div>
       </div>`;
 
