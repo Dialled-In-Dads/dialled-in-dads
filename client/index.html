@@ -653,63 +653,46 @@
       localStorage.setItem('install-dismissed', '1');
     }
 
-    function dbg(msg) {
-      document.getElementById('main-content').innerHTML =
-        `<div style="padding:24px;color:#E8834A;font-size:14px;line-height:1.8">DEBUG: ${msg}</div>`;
-    }
-
     // ---- Boot ----
     (async () => {
-      try {
-        dbg('checking session...');
-        const session = await requireClient();
-        if (!session) { dbg('no session — redirecting'); return; }
+      const session = await requireClient();
+      if (!session) return;
 
-        dbg('loading client record...');
-        const client = await getCurrentClient(session.user.id);
-        if (!client) { dbg('client record not found for user ' + session.user.id); return; }
+      const client = await getCurrentClient(session.user.id);
+      if (!client) return;
 
-        // Update header
-        document.getElementById('greeting').textContent    = greeting();
-        document.getElementById('client-name').textContent = client.name || 'Champ';
-        document.getElementById('page-date').textContent   = new Date().toLocaleDateString('en-GB', {
-          weekday: 'long', day: 'numeric', month: 'long'
-        });
-        document.getElementById('phase-pill').textContent  = client.current_phase || phaseLabel(client.phase) || '—';
+      // Update header
+      document.getElementById('greeting').textContent    = greeting();
+      document.getElementById('client-name').textContent = client.name || 'Champ';
+      document.getElementById('page-date').textContent   = new Date().toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long'
+      });
+      document.getElementById('phase-pill').textContent  = client.current_phase || phaseLabel(client.phase) || '—';
 
-        dbg('fetching data... programme_id=' + client.programme_id);
+      // Parallel fetches
+      const [
+        { data: checkIns },
+        { data: message },
+        { data: programme },
+      ] = await Promise.all([
+        db.from('check_ins')
+          .select('check_in_date, weight_kg, calories_yesterday, protein_yesterday_g, steps_yesterday, feeling_score, win_completed')
+          .eq('client_id', client.id)
+          .order('check_in_date', { ascending: false })
+          .limit(30),
+        db.from('messages')
+          .select('body, sent_at, is_read, sender_role')
+          .eq('client_id', client.id)
+          .eq('sender_role', 'coach')
+          .order('sent_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        client.programme_id
+          ? db.from('programmes').select('name').eq('id', client.programme_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
 
-        // Parallel fetches
-        const [
-          { data: checkIns,  error: e1 },
-          { data: message,   error: e2 },
-          { data: programme, error: e3 },
-        ] = await Promise.all([
-          db.from('check_ins')
-            .select('check_in_date, weight_kg, calories_yesterday, protein_yesterday_g, steps_yesterday, feeling_score, win_completed')
-            .eq('client_id', client.id)
-            .order('check_in_date', { ascending: false })
-            .limit(30),
-          db.from('messages')
-            .select('body, sent_at, is_read, sender_role')
-            .eq('client_id', client.id)
-            .eq('sender_role', 'coach')
-            .order('sent_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          client.programme_id
-            ? db.from('programmes').select('name').eq('id', client.programme_id).maybeSingle()
-            : Promise.resolve({ data: null }),
-        ]);
-
-        if (e1) { dbg('check_ins error: ' + e1.message); return; }
-        if (e2) { dbg('messages error: ' + e2.message); return; }
-        if (e3) { dbg('programmes error: ' + e3.message); return; }
-
-        renderDashboard(client, checkIns || [], message, programme);
-      } catch(err) {
-        dbg('JS error: ' + err.message);
-      }
+      renderDashboard(client, checkIns || [], message, programme);
     })();
 
     // ---- Render ----
@@ -855,7 +838,7 @@
       html += `<a href="workout.html" class="workout-card">
         <div class="card-header" style="margin-bottom:12px">
           <div class="card-title">Today's Workout</div>
-          ${programme ? `<div style="font-size:12px;color:var(--orange);font-weight:600">${esc(programme.name)}</div>` : ''}
+          ${programme ? `<div style="font-size:12px;color:var(--orange);font-weight:600">${escHtml(programme.name)}</div>` : ''}
         </div>
         ${!programme ? `<div class="no-programme"><p>No programme assigned yet.</p></div>` : ''}
         <div class="workout-cta">
