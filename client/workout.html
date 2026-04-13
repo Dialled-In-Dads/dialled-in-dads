@@ -460,18 +460,22 @@
       clientData = await getCurrentClient(session.user.id);
       if (!clientData) return;
 
-      // Get active programme assignment
-      const { data: assign } = await db
-        .from('programme_assignments')
-        .select('*, programmes(*)')
-        .eq('client_id', clientData.id)
-        .eq('is_active', true)
+      // Get programme from client record
+      if (!clientData.programme_id) { renderNoProgramme(); return; }
+
+      const { data: prog } = await db
+        .from('programmes')
+        .select('*')
+        .eq('id', clientData.programme_id)
         .maybeSingle();
 
-      if (!assign) { renderNoProgramme(); return; }
+      if (!prog) { renderNoProgramme(); return; }
 
-      assignment = assign;
-      programme  = assign.programmes;
+      assignment = {
+        id:         null,
+        start_date: clientData.programme_start_date || today,
+      };
+      programme = prog;
 
       // Load all weeks and days
       const { data: weeks } = await db
