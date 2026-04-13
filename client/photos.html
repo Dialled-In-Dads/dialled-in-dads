@@ -187,27 +187,46 @@
     .pose-icon { font-size: 20px; display: block; margin-bottom: 3px; }
 
     /* Photo file input */
-    .photo-input-wrap {
-      position: relative;
-    }
+    .photo-input-wrap { position: relative; }
     .photo-input-label {
       display: flex; align-items: center; justify-content: center; gap: 8px;
-      width: 100%; padding: 32px 16px;
+      width: 100%; padding: 28px 16px;
       background: var(--bg); border: 2px dashed var(--border);
       border-radius: 10px; cursor: pointer;
       font-size: 13px; color: var(--muted);
-      transition: border-color 0.15s;
-      flex-direction: column;
+      transition: border-color 0.15s; flex-direction: column;
     }
     .photo-input-label svg { width: 28px; height: 28px; stroke: var(--subtle); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .photo-input-label:hover { border-color: var(--orange); }
-    .photo-input-label.has-file { border-color: var(--green); color: var(--green); }
     #photo-file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
-    .photo-preview-img {
-      width: 100%; max-height: 200px; object-fit: cover;
-      border-radius: 8px; margin-top: 8px; display: none;
+    /* Multi-photo preview grid */
+    .photo-batch { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+    .batch-item {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px; position: relative;
     }
+    .batch-thumb { width: 64px; height: 80px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+    .batch-info { flex: 1; }
+    .batch-filename { font-size: 11px; color: var(--muted); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+    .batch-pose-grid { display: flex; gap: 5px; }
+    .batch-pose-btn {
+      flex: 1; padding: 6px 4px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 6px;
+      font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500;
+      color: var(--muted); cursor: pointer; text-align: center;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .batch-pose-btn.selected { border-color: var(--orange); color: var(--orange); background: rgba(193,88,26,0.1); }
+    .batch-remove {
+      position: absolute; top: 6px; right: 6px;
+      background: rgba(255,255,255,0.07); border: none; border-radius: 50%;
+      width: 20px; height: 20px; color: var(--muted); font-size: 12px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .batch-remove:hover { color: #e74c3c; }
 
     .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
     .btn-cancel {
@@ -303,33 +322,18 @@
   <div class="modal-overlay" id="upload-modal" onclick="handleOverlayClick(event)">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
-      <div class="modal-title">Add Photo</div>
+      <div class="modal-title">Add Photos</div>
 
       <div class="form-group">
-        <label class="form-label">Photo *</label>
+        <label class="form-label">Photos *</label>
         <div class="photo-input-wrap">
           <label class="photo-input-label" id="file-label" for="photo-file-input">
             <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-            <span id="file-label-text">Tap to choose photo</span>
+            <span id="file-label-text">Tap to choose photos (select multiple)</span>
           </label>
-          <input type="file" id="photo-file-input" accept="image/*" capture="environment" onchange="handleFileSelect(this)">
+          <input type="file" id="photo-file-input" accept="image/*" multiple onchange="handleFileSelect(this)">
         </div>
-        <img id="photo-preview" class="photo-preview-img" alt="Preview">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Pose *</label>
-        <div class="pose-grid">
-          <button class="pose-btn selected" data-pose="front" onclick="selectPose(this)">
-            <span class="pose-icon">⬆️</span> Front
-          </button>
-          <button class="pose-btn" data-pose="side" onclick="selectPose(this)">
-            <span class="pose-icon">➡️</span> Side
-          </button>
-          <button class="pose-btn" data-pose="back" onclick="selectPose(this)">
-            <span class="pose-icon">⬇️</span> Back
-          </button>
-        </div>
+        <div class="photo-batch" id="photo-batch"></div>
       </div>
 
       <div class="form-group">
@@ -349,7 +353,7 @@
 
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeUpload()">Cancel</button>
-        <button class="btn-upload" id="btn-upload" onclick="uploadPhoto()">Upload Photo</button>
+        <button class="btn-upload" id="btn-upload" onclick="uploadPhotos()">Upload</button>
       </div>
     </div>
   </div>
@@ -406,8 +410,7 @@
     const STORAGE_URL = 'https://oboeavvjrtuzeovrjsht.supabase.co/storage/v1/object/public/progress-photos';
 
     let clientData = null;
-    let selectedPose = 'front';
-    let selectedFile = null;
+    let selectedFiles = []; // array of { file, pose }
 
     // ---- Boot ----
     window.addEventListener('DOMContentLoaded', async () => {
@@ -459,6 +462,13 @@
 
     // ---- Upload modal ----
     function openUpload() {
+      selectedFiles = [];
+      document.getElementById('photo-batch').innerHTML = '';
+      document.getElementById('photo-file-input').value = '';
+      document.getElementById('file-label-text').textContent = 'Tap to choose photos (select multiple)';
+      document.getElementById('photo-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('photo-weight').value = '';
+      document.getElementById('photo-notes').value = '';
       document.getElementById('upload-modal').classList.add('open');
       document.body.style.overflow = 'hidden';
     }
@@ -473,79 +483,104 @@
     }
 
     function handleFileSelect(input) {
-      const file = input.files[0];
-      if (!file) return;
-      selectedFile = file;
-      const label = document.getElementById('file-label');
-      label.classList.add('has-file');
-      document.getElementById('file-label-text').textContent = file.name;
-      const preview = document.getElementById('photo-preview');
-      preview.src = URL.createObjectURL(file);
-      preview.style.display = 'block';
+      const files = Array.from(input.files);
+      if (!files.length) return;
+
+      // Assign default poses in order: front, side, back, then 'other' for extras
+      const defaultPoses = ['front', 'side', 'back'];
+      files.forEach((file, i) => {
+        selectedFiles.push({ file, pose: defaultPoses[i] || 'front' });
+      });
+
+      document.getElementById('file-label-text').textContent =
+        `${selectedFiles.length} photo${selectedFiles.length > 1 ? 's' : ''} selected`;
+
+      renderBatch();
     }
 
-    function selectPose(btn) {
-      document.querySelectorAll('.pose-btn').forEach(b => b.classList.remove('selected'));
+    function renderBatch() {
+      const poses = ['front', 'side', 'back'];
+      const html = selectedFiles.map((item, i) => `
+        <div class="batch-item" id="batch-item-${i}">
+          <img class="batch-thumb" src="${URL.createObjectURL(item.file)}" alt="">
+          <div class="batch-info">
+            <div class="batch-filename">${escHtml(item.file.name)}</div>
+            <div class="batch-pose-grid">
+              ${poses.map(p => `
+                <button class="batch-pose-btn ${item.pose === p ? 'selected' : ''}"
+                  onclick="setBatchPose(${i}, '${p}', this)">
+                  ${p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>`).join('')}
+            </div>
+          </div>
+          <button class="batch-remove" onclick="removeBatchItem(${i})">×</button>
+        </div>`).join('');
+      document.getElementById('photo-batch').innerHTML = html;
+    }
+
+    function setBatchPose(index, pose, btn) {
+      selectedFiles[index].pose = pose;
+      const item = document.getElementById(`batch-item-${index}`);
+      item.querySelectorAll('.batch-pose-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
-      selectedPose = btn.dataset.pose;
     }
 
-    async function uploadPhoto() {
-      if (!selectedFile) { alert('Please choose a photo first.'); return; }
+    function removeBatchItem(index) {
+      selectedFiles.splice(index, 1);
+      if (!selectedFiles.length) {
+        document.getElementById('file-label-text').textContent = 'Tap to choose photos (select multiple)';
+        document.getElementById('photo-file-input').value = '';
+      } else {
+        document.getElementById('file-label-text').textContent =
+          `${selectedFiles.length} photo${selectedFiles.length > 1 ? 's' : ''} selected`;
+      }
+      renderBatch();
+    }
+
+    async function uploadPhotos() {
+      if (!selectedFiles.length) { alert('Please choose at least one photo.'); return; }
       const btn = document.getElementById('btn-upload');
-      btn.disabled = true; btn.textContent = 'Uploading…';
+      btn.disabled = true;
+
+      const takenAt  = document.getElementById('photo-date').value || new Date().toISOString().split('T')[0];
+      const weightKg = parseFloat(document.getElementById('photo-weight').value) || null;
+      const notes    = document.getElementById('photo-notes').value.trim() || null;
+
+      let done = 0;
+      const total = selectedFiles.length;
 
       try {
-        // Generate unique filename
-        const ext  = selectedFile.name.split('.').pop().toLowerCase();
-        const uuid = crypto.randomUUID();
-        const path = `${clientData.id}/${uuid}.${ext}`;
+        for (const item of selectedFiles) {
+          btn.textContent = `Uploading ${done + 1} of ${total}…`;
+          const ext  = item.file.name.split('.').pop().toLowerCase();
+          const path = `${clientData.id}/${crypto.randomUUID()}.${ext}`;
 
-        // Upload to Supabase Storage
-        const { error: storageErr } = await db.storage
-          .from('progress-photos')
-          .upload(path, selectedFile, { contentType: selectedFile.type, upsert: false });
+          const { error: storageErr } = await db.storage
+            .from('progress-photos')
+            .upload(path, item.file, { contentType: item.file.type, upsert: false });
+          if (storageErr) throw storageErr;
 
-        if (storageErr) throw storageErr;
-
-        const photoUrl = `${STORAGE_URL}/${path}`;
-        const takenAt  = document.getElementById('photo-date').value || new Date().toISOString().split('T')[0];
-        const weightKg = parseFloat(document.getElementById('photo-weight').value) || null;
-        const notes    = document.getElementById('photo-notes').value.trim() || null;
-
-        // Insert DB record
-        const { error: dbErr } = await db.from('progress_photos').insert({
-          client_id:        clientData.id,
-          photo_url:        photoUrl,
-          pose:             selectedPose,
-          taken_at:         takenAt,
-          weight_kg:        weightKg,
-          notes:            notes,
-          uploaded_by:      'client',
-          viewed_by_coach:  false
-        });
-
-        if (dbErr) throw dbErr;
-
-        // Reset form
-        selectedFile = null;
-        document.getElementById('photo-file-input').value = '';
-        document.getElementById('file-label').classList.remove('has-file');
-        document.getElementById('file-label-text').textContent = 'Tap to choose photo';
-        document.getElementById('photo-preview').style.display = 'none';
-        document.getElementById('photo-weight').value = '';
-        document.getElementById('photo-notes').value = '';
-        document.getElementById('photo-date').value = new Date().toISOString().split('T')[0];
-        document.querySelectorAll('.pose-btn').forEach(b => b.classList.remove('selected'));
-        document.querySelector('[data-pose="front"]').classList.add('selected');
-        selectedPose = 'front';
+          const { error: dbErr } = await db.from('progress_photos').insert({
+            client_id:       clientData.id,
+            photo_url:       `${STORAGE_URL}/${path}`,
+            pose:            item.pose,
+            taken_at:        takenAt,
+            weight_kg:       weightKg,
+            notes:           notes,
+            uploaded_by:     'client',
+            viewed_by_coach: false
+          });
+          if (dbErr) throw dbErr;
+          done++;
+        }
 
         closeUpload();
         await loadPhotos();
 
       } catch (err) {
         alert('Upload failed: ' + (err.message || 'Unknown error'));
-        btn.disabled = false; btn.textContent = 'Upload Photo';
+        btn.disabled = false;
+        btn.textContent = `Upload${total > 1 ? ' All' : ''}`;
       }
     }
 
