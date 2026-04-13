@@ -47,8 +47,6 @@
       align-items: flex-start;
     }
 
-    .header-left {}
-
     .page-label {
       font-size: 11px;
       font-weight: 500;
@@ -87,7 +85,6 @@
       white-space: nowrap;
     }
 
-    /* ---- Sign out menu ---- */
     .header-right {
       display: flex;
       flex-direction: column;
@@ -106,7 +103,6 @@
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s;
     }
-
     .signout-btn:hover { border-color: var(--subtle); color: var(--muted); }
 
     /* ---- Content ---- */
@@ -120,7 +116,7 @@
       font-size: 14px;
     }
 
-    /* ---- Cards ---- */
+    /* ---- Generic card ---- */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -144,50 +140,133 @@
       letter-spacing: 1px;
     }
 
-    /* ---- Stats grid 2×2 ---- */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    /* ---- TODAY'S GOALS CARD ---- */
+    .today-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
       margin-bottom: 12px;
     }
 
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px;
+    .today-card-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
     }
 
-    .stat-label {
+    .today-day-tag {
+      font-family: 'Anton', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      color: var(--orange);
+      text-transform: uppercase;
+    }
+
+    .today-phase-tag {
       font-size: 10px;
       font-weight: 600;
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      margin-bottom: 6px;
+      background: var(--border);
+      padding: 3px 8px;
+      border-radius: 6px;
     }
 
-    .stat-value {
+    .today-message {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.55;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .goals-pills {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .goal-pill {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 6px;
+      text-align: center;
+    }
+
+    .goal-pill-value {
       font-family: 'Anton', sans-serif;
-      font-size: 28px;
+      font-size: 17px;
       letter-spacing: 0.5px;
       color: var(--text);
       line-height: 1;
+      margin-bottom: 5px;
     }
 
-    .stat-value .unit {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
+    .goal-pill-label {
+      font-size: 9px;
+      font-weight: 600;
       color: var(--muted);
-      margin-left: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .stat-sub {
-      font-size: 11px;
-      color: var(--subtle);
-      margin-top: 4px;
+    /* ---- Workout preview (inside today card) ---- */
+    .workout-preview {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .workout-preview:hover,
+    .workout-preview:active { border-color: var(--orange); }
+
+    .workout-preview-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .workout-preview-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .workout-preview-exercise {
+      font-size: 12px;
+      color: var(--orange);
+    }
+
+    .workout-preview-rest {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .workout-preview-arrow {
+      width: 18px;
+      height: 18px;
+      stroke: var(--orange);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
     }
 
     /* ---- Weight chart ---- */
@@ -308,8 +387,6 @@
       letter-spacing: 1px;
     }
 
-    .streak-info {}
-
     .streak-label {
       font-size: 14px;
       font-weight: 600;
@@ -320,153 +397,6 @@
     .streak-sub {
       font-size: 12px;
       color: var(--muted);
-    }
-
-    /* ---- Workout card ---- */
-    .workout-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 12px;
-      text-decoration: none;
-      display: block;
-      transition: border-color 0.15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .workout-card:hover { border-color: var(--orange); }
-
-    .workout-tiers {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 4px;
-    }
-
-    .tier-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .tier-badge {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      min-width: 52px;
-      text-align: center;
-    }
-
-    .tier-badge.win    { background: rgba(193, 88, 26, 0.2); color: var(--orange); }
-    .tier-badge.bonus  { background: rgba(46, 204, 138, 0.12); color: var(--green); }
-    .tier-badge.extra  { background: rgba(91, 155, 213, 0.12); color: var(--blue); }
-
-    .tier-exercise {
-      font-size: 14px;
-      color: var(--text);
-      font-weight: 500;
-    }
-
-    .tier-scheme {
-      font-size: 12px;
-      color: var(--muted);
-      margin-left: auto;
-    }
-
-    .workout-cta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 14px;
-      padding-top: 14px;
-      border-top: 1px solid var(--border);
-    }
-
-    .workout-cta-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--orange);
-    }
-
-    .workout-cta svg {
-      width: 16px;
-      height: 16px;
-      stroke: var(--orange);
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    /* ---- No programme state ---- */
-    .no-programme {
-      text-align: center;
-      padding: 8px 0;
-    }
-
-    .no-programme p {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* ---- Message card ---- */
-    .message-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 12px;
-      text-decoration: none;
-      display: block;
-      transition: border-color 0.15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .message-card:hover { border-color: var(--border); }
-
-    .message-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-
-    .message-from {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .message-time {
-      font-size: 11px;
-      color: var(--subtle);
-    }
-
-    .message-body {
-      font-size: 14px;
-      color: var(--text);
-      line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .unread-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--orange);
-      border-radius: 50%;
-      display: inline-block;
-      margin-left: 6px;
-      vertical-align: middle;
     }
 
     /* ---- Install banner ---- */
@@ -502,9 +432,7 @@
     /* ---- Bottom nav ---- */
     .bottom-nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       height: var(--nav-h);
       background: var(--surface);
       border-top: 1px solid var(--border);
@@ -527,13 +455,9 @@
     }
 
     .nav-item svg {
-      width: 22px;
-      height: 22px;
-      stroke: var(--subtle);
-      fill: none;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
+      width: 22px; height: 22px;
+      stroke: var(--subtle); fill: none;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
     }
 
     .nav-label {
@@ -543,7 +467,7 @@
       letter-spacing: 0.2px;
     }
 
-    .nav-item.active svg { stroke: var(--orange); }
+    .nav-item.active svg   { stroke: var(--orange); }
     .nav-item.active .nav-label { color: var(--orange); }
   </style>
 </head>
@@ -565,7 +489,6 @@
     <div class="loading-state">Loading your dashboard...</div>
   </div>
 
-  <!-- Install banner (iOS) -->
   <div class="install-banner" id="install-banner">
     <div class="install-banner-icon">DID</div>
     <div class="install-banner-text">
@@ -575,7 +498,6 @@
     <button class="install-banner-close" onclick="dismissInstall()">×</button>
   </div>
 
-  <!-- Bottom Nav -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item active">
       <svg viewBox="0 0 24 24">
@@ -612,7 +534,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../auth.js"></script>
   <script>
-    // ---- Helpers ----
     const today = new Date().toISOString().split('T')[0];
 
     function greeting() {
@@ -630,18 +551,7 @@
     }
 
     function fmtDate(d) {
-      return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'short'
-      });
-    }
-
-    function timeAgo(isoString) {
-      const diff = Date.now() - new Date(isoString).getTime();
-      const mins = Math.floor(diff / 60000);
-      if (mins < 60) return `${mins}m ago`;
-      const hrs = Math.floor(mins / 60);
-      if (hrs < 24) return `${hrs}h ago`;
-      return `${Math.floor(hrs / 24)}d ago`;
+      return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     }
 
     // ---- iOS install prompt ----
@@ -656,6 +566,60 @@
       localStorage.setItem('install-dismissed', '1');
     }
 
+    // ---- Fetch today's workout day + main exercise ----
+    async function getTodayWorkout(client) {
+      if (!client.programme_id) return null;
+
+      const { data: weeks } = await db.from('programme_weeks')
+        .select('id, week_number')
+        .eq('programme_id', client.programme_id)
+        .order('week_number');
+
+      if (!weeks?.length) return null;
+
+      const { data: pDays } = await db.from('programme_days')
+        .select('id, label, day_type, day_number, week_id')
+        .in('week_id', weeks.map(w => w.id))
+        .order('day_number');
+
+      if (!pDays?.length) return null;
+
+      const allDays = weeks.flatMap(w =>
+        (pDays || [])
+          .filter(d => d.week_id === w.id)
+          .sort((a, b) => a.day_number - b.day_number)
+      );
+
+      const startDate   = new Date((client.programme_start_date || today) + 'T00:00:00');
+      const todayDate   = new Date(today + 'T00:00:00');
+      const elapsed     = Math.round((todayDate - startDate) / 86400000);
+      const dayIndex    = ((elapsed % allDays.length) + allDays.length) % allDays.length;
+      const todayDay    = allDays[dayIndex];
+
+      if (todayDay.day_type !== 'workout') {
+        return { label: todayDay.label || 'Rest Day', isRest: true, mainExercise: null };
+      }
+
+      // Get first exercise from win block (or first block)
+      const { data: blocks } = await db.from('workout_blocks')
+        .select('id, tier').eq('day_id', todayDay.id).order('sort_order').limit(3);
+
+      let mainExercise = null;
+      if (blocks?.length) {
+        const winBlock = blocks.find(b => b.tier === 'win') || blocks[0];
+        const { data: exs } = await db.from('block_exercises')
+          .select('exercise_name, sets, rep_scheme')
+          .eq('block_id', winBlock.id).order('sort_order').limit(1);
+        if (exs?.length) {
+          const ex = exs[0];
+          const scheme = ex.rep_scheme || (ex.sets ? `${ex.sets} sets` : null);
+          mainExercise = { name: ex.exercise_name, scheme };
+        }
+      }
+
+      return { label: todayDay.label || 'Workout', isRest: false, mainExercise };
+    }
+
     // ---- Boot ----
     (async () => {
       const session = await requireClient();
@@ -664,7 +628,6 @@
       const client = await getCurrentClient(session.user.id);
       if (!client) return;
 
-      // Update header
       document.getElementById('greeting').textContent    = greeting();
       document.getElementById('client-name').textContent = client.name || 'Champ';
       document.getElementById('page-date').textContent   = new Date().toLocaleDateString('en-GB', {
@@ -672,50 +635,44 @@
       });
       document.getElementById('phase-pill').textContent  = client.current_phase || phaseLabel(client.phase) || '—';
 
-      // Parallel fetches
       const [
         { data: checkIns },
-        { data: message },
         { data: programme },
+        todayWorkout,
       ] = await Promise.all([
         db.from('check_ins')
           .select('check_in_date, weight_kg, calories_yesterday, protein_yesterday_g, steps_yesterday, feeling_score, win_completed')
           .eq('client_id', client.id)
           .order('check_in_date', { ascending: false })
           .limit(30),
-        db.from('messages')
-          .select('body, sent_at, is_read, sender_role')
-          .eq('client_id', client.id)
-          .eq('sender_role', 'coach')
-          .order('sent_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
         client.programme_id
           ? db.from('programmes').select('name').eq('id', client.programme_id).maybeSingle()
           : Promise.resolve({ data: null }),
+        getTodayWorkout(client),
       ]);
 
-      renderDashboard(client, checkIns || [], message, programme);
+      renderDashboard(client, checkIns || [], programme, todayWorkout);
     })();
 
     // ---- Render ----
-    function renderDashboard(client, checkIns, message, programme) {
-      const latest     = checkIns[0] || null;
-      const todayCI    = checkIns.find(c => c.check_in_date === today);
+    function renderDashboard(client, checkIns, programme, todayWorkout) {
+      const latest  = checkIns[0] || null;
+      const streak  = calcStreak(checkIns);
 
-      // 7-day average weight
-      const last7      = checkIns.filter(c => c.weight_kg).slice(0, 7);
-      const avg7       = last7.length
-        ? (last7.reduce((s, c) => s + c.weight_kg, 0) / last7.length).toFixed(1)
-        : null;
+      // Programme day number (days since start, 1-indexed)
+      const startDate  = client.programme_start_date || today;
+      const dayNum     = Math.round(
+        (new Date(today + 'T00:00:00') - new Date(startDate + 'T00:00:00')) / 86400000
+      ) + 1;
 
-      // Streak — consecutive days with check-in ending today or yesterday
-      const streak = calcStreak(checkIns);
+      // Motivational message
+      const firstName = (client.name || 'champ').split(/[\s.]/)[0];
+      const capName   = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+      const message   = client.daily_note || autoMessage(dayNum, streak, capName);
 
-      // This week habits (Mon–today)
-      const weekStart = getWeekStart();
-      const thisWeek  = checkIns.filter(c => c.check_in_date >= weekStart);
-
+      // This week habits
+      const weekStart     = getWeekStart();
+      const thisWeek      = checkIns.filter(c => c.check_in_date >= weekStart);
       const habCalsLogged = thisWeek.filter(c => c.calories_yesterday != null).length;
       const habCalsHit    = client.goal_calories
         ? thisWeek.filter(c => c.calories_yesterday != null && c.calories_yesterday <= client.goal_calories * 1.05).length
@@ -725,57 +682,124 @@
         ? thisWeek.filter(c => c.steps_yesterday != null && c.steps_yesterday >= client.goal_steps).length
         : null;
 
-      // Weight chart data (last 14 check-ins with weight, chronological)
-      const chartData = checkIns
-        .filter(c => c.weight_kg)
-        .slice(0, 14)
-        .reverse();
-
-      // Goal progress
-      const startWeight  = client.goal_weight ? null : null; // no start stored, use first entry
-      const targetWeight = client.goal_weight || null;
+      // Weight chart + goal progress
+      const chartData     = checkIns.filter(c => c.weight_kg).slice(0, 14).reverse();
+      const targetWeight  = client.goal_weight || null;
       const currentWeight = latest?.weight_kg || null;
 
-      // Build HTML
       let html = '';
 
-      // ---- Stats grid ----
-      html += `<div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Weight</div>
-          <div class="stat-value">${latest?.weight_kg ?? '—'}<span class="unit">kg</span></div>
-          <div class="stat-sub">${latest ? fmtDate(latest.check_in_date) : 'No data yet'}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">7-Day Avg</div>
-          <div class="stat-value">${avg7 ?? '—'}<span class="unit">kg</span></div>
-          <div class="stat-sub">${last7.length} check-in${last7.length !== 1 ? 's' : ''}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Cals Yesterday</div>
-          <div class="stat-value">${latest?.calories_yesterday != null ? latest.calories_yesterday.toLocaleString() : '—'}<span class="unit">kcal</span></div>
-          <div class="stat-sub">${client.goal_calories ? `Goal: ${client.goal_calories.toLocaleString()}` : 'No goal set'}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Steps Yesterday</div>
-          <div class="stat-value">${latest?.steps_yesterday != null ? (latest.steps_yesterday >= 1000 ? (latest.steps_yesterday/1000).toFixed(1)+'k' : latest.steps_yesterday) : '—'}</div>
-          <div class="stat-sub">${client.goal_steps ? `Goal: ${(client.goal_steps/1000).toFixed(0)}k` : 'No goal set'}</div>
-        </div>
-      </div>`;
+      // ---- Today's Goals ----
+      const calsDisplay    = client.goal_calories ? client.goal_calories.toLocaleString() : '—';
+      const proteinDisplay = client.goal_protein  ? client.goal_protein + 'g'             : '—';
+      const stepsDisplay   = client.goal_steps
+        ? (client.goal_steps >= 1000 ? (client.goal_steps / 1000).toFixed(0) + 'k' : client.goal_steps)
+        : '—';
+      const fatDisplay     = client.goal_fat ? '≥' + client.goal_fat + 'g' : '—';
 
-      // ---- Weight chart ----
-      if (chartData.length >= 2) {
-        const trending = isGoodTrend(chartData, targetWeight);
-        const lineColor = trending ? 'var(--green)' : 'var(--subtle)';
-        html += `<div class="card">
-          <div class="card-header">
-            <div class="card-title">Weight Trend</div>
-            ${targetWeight ? `<div style="font-size:12px;color:var(--muted)">Target: <strong style="color:var(--green)">${targetWeight}kg</strong></div>` : ''}
+      let workoutPreview = '';
+      if (todayWorkout) {
+        if (todayWorkout.isRest) {
+          workoutPreview = `
+            <a href="workout.html" class="workout-preview">
+              <div>
+                <div class="workout-preview-label">Today's Session</div>
+                <div class="workout-preview-name">${escHtml(todayWorkout.label)}</div>
+                <div class="workout-preview-rest">Recovery is part of the programme</div>
+              </div>
+              <svg class="workout-preview-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>`;
+        } else {
+          workoutPreview = `
+            <a href="workout.html" class="workout-preview">
+              <div>
+                <div class="workout-preview-label">Today's Workout</div>
+                <div class="workout-preview-name">${escHtml(todayWorkout.label)}</div>
+                ${todayWorkout.mainExercise ? `<div class="workout-preview-exercise">${escHtml(todayWorkout.mainExercise.name)}${todayWorkout.mainExercise.scheme ? ' · ' + escHtml(todayWorkout.mainExercise.scheme) : ''}</div>` : ''}
+              </div>
+              <svg class="workout-preview-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>`;
+        }
+      } else if (programme) {
+        workoutPreview = `
+          <a href="workout.html" class="workout-preview">
+            <div>
+              <div class="workout-preview-label">Programme</div>
+              <div class="workout-preview-name">${escHtml(programme.name)}</div>
+            </div>
+            <svg class="workout-preview-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>`;
+      }
+
+      html += `
+        <div class="today-card">
+          <div class="today-card-top">
+            <div class="today-day-tag">Day ${dayNum}</div>
+            ${client.current_phase ? `<div class="today-phase-tag">${escHtml(client.current_phase)}</div>` : ''}
           </div>
-          <div class="chart-wrap">
-            ${buildChart(chartData, targetWeight, lineColor)}
+          <div class="today-message">${escHtml(message)}</div>
+          <div class="goals-pills">
+            <div class="goal-pill">
+              <div class="goal-pill-value">${calsDisplay}</div>
+              <div class="goal-pill-label">Kcals</div>
+            </div>
+            <div class="goal-pill">
+              <div class="goal-pill-value">${proteinDisplay}</div>
+              <div class="goal-pill-label">Protein</div>
+            </div>
+            <div class="goal-pill">
+              <div class="goal-pill-value">${stepsDisplay}</div>
+              <div class="goal-pill-label">Steps</div>
+            </div>
+            <div class="goal-pill">
+              <div class="goal-pill-value">${fatDisplay}</div>
+              <div class="goal-pill-label">Fat Min</div>
+            </div>
+          </div>
+          ${workoutPreview}
+        </div>`;
+
+      // ---- Habits this week ----
+      const daysThisWeek = Math.max(1, thisWeek.length || 1);
+      html += `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Habits This Week</div>
+            <div style="font-size:11px;color:var(--subtle)">${thisWeek.length} day${thisWeek.length !== 1 ? 's' : ''} logged</div>
+          </div>
+          <div class="habits-grid">
+            ${habitItem('Cals Logged',  habCalsLogged, daysThisWeek, 'Tracked', true)}
+            ${habitItem('Cal Goal Hit', habCalsHit,    daysThisWeek, client.goal_calories ? 'Tracked' : 'No goal set', client.goal_calories != null)}
+            ${habitItem('Workout Done', habWorkout,    daysThisWeek, 'Logged', true)}
+            ${habitItem('Steps Goal',   habSteps,      daysThisWeek, client.goal_steps ? 'Tracked' : 'No goal set', client.goal_steps != null)}
           </div>
         </div>`;
+
+      // ---- Streak ----
+      html += `
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">Check-In Streak</div>
+          <div class="streak-row">
+            <div class="streak-num">${streak}</div>
+            <div>
+              <div class="streak-label">${streak === 1 ? 'day' : 'days'} in a row</div>
+              <div class="streak-sub">${streak === 0 ? 'Check in today to start your streak' : streak >= 7 ? 'Dialled in 🔥' : 'Keep it going 💪'}</div>
+            </div>
+          </div>
+        </div>`;
+
+      // ---- Weight trend ----
+      if (chartData.length >= 2) {
+        const trending  = isGoodTrend(chartData, targetWeight);
+        const lineColor = trending ? 'var(--green)' : 'var(--subtle)';
+        html += `
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Weight Trend</div>
+              ${targetWeight ? `<div style="font-size:12px;color:var(--muted)">Target: <strong style="color:var(--green)">${targetWeight}kg</strong></div>` : ''}
+            </div>
+            <div class="chart-wrap">${buildChart(chartData, targetWeight, lineColor)}</div>
+          </div>`;
       }
 
       // ---- Goal progress ----
@@ -785,83 +809,43 @@
         const progress    = totalChange > 0
           ? Math.min(100, Math.max(0, (Math.abs(firstWeight - currentWeight) / totalChange) * 100))
           : 100;
-        const lost        = (firstWeight - currentWeight).toFixed(1);
-        const toGo        = (currentWeight - targetWeight).toFixed(1);
+        const lost = (firstWeight - currentWeight).toFixed(1);
+        const toGo = (currentWeight - targetWeight).toFixed(1);
 
-        html += `<div class="card">
-          <div class="card-title">Goal Progress</div>
-          <div class="goal-row">
-            <span class="goal-start">${firstWeight}kg start</span>
-            <span class="goal-current">${currentWeight}<span class="unit">kg</span></span>
-            <span class="goal-target">${targetWeight}kg target</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width:${progress.toFixed(1)}%"></div>
-          </div>
-          <div class="goal-meta">
-            ${parseFloat(toGo) <= 0
-              ? `🎯 <strong>Target reached!</strong>`
-              : parseFloat(lost) > 0
-              ? `<strong>${lost}kg down</strong> · ${toGo}kg to go`
-              : parseFloat(lost) < 0
-              ? `<strong>${Math.abs(lost)}kg up</strong> · ${Math.abs(toGo)}kg to target`
-              : `Just getting started — let's go 💪`}
-          </div>
-        </div>`;
-      }
-
-      // ---- Streak ----
-      html += `<div class="card">
-        <div class="card-title">Check-In Streak</div>
-        <div class="streak-row">
-          <div class="streak-num">${streak}</div>
-          <div class="streak-info">
-            <div class="streak-label">${streak === 1 ? 'day' : 'days'} in a row</div>
-            <div class="streak-sub">${streak === 0 ? 'Check in today to start your streak' : streak >= 7 ? 'Dialled in 🔥' : 'Keep it going 💪'}</div>
-          </div>
-        </div>
-      </div>`;
-
-      // ---- Habits this week ----
-      const daysThisWeek = Math.max(1, thisWeek.length || 1);
-      html += `<div class="card">
-        <div class="card-header">
-          <div class="card-title">Habits This Week</div>
-          <div style="font-size:11px;color:var(--subtle)">${thisWeek.length} day${thisWeek.length !== 1 ? 's' : ''} logged</div>
-        </div>
-        <div class="habits-grid">
-          ${habitItem('Cals Logged', habCalsLogged, daysThisWeek, 'Tracked', true)}
-          ${habitItem('Cal Goal Hit', habCalsHit, daysThisWeek, client.goal_calories ? 'Tracked' : 'No goal set', client.goal_calories != null)}
-          ${habitItem('Workout Done', habWorkout, daysThisWeek, 'Logged', true)}
-          ${habitItem('Steps Goal', habSteps, daysThisWeek, client.goal_steps ? 'Tracked' : 'No goal set', client.goal_steps != null)}
-        </div>
-      </div>`;
-
-      // ---- Workout card ----
-      html += `<a href="workout.html" class="workout-card">
-        <div class="card-header" style="margin-bottom:12px">
-          <div class="card-title">Today's Workout</div>
-          ${programme ? `<div style="font-size:12px;color:var(--orange);font-weight:600">${escHtml(programme.name)}</div>` : ''}
-        </div>
-        ${!programme ? `<div class="no-programme"><p>No programme assigned yet.</p></div>` : ''}
-        <div class="workout-cta">
-          <span class="workout-cta-text">Open Workout</span>
-          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-      </a>`;
-
-      // ---- Coach message ----
-      if (message) {
-        html += `<a href="messages.html" class="message-card">
-          <div class="message-meta">
-            <span class="message-from">Coach${!message.is_read ? '<span class="unread-dot"></span>' : ''}</span>
-            <span class="message-time">${timeAgo(message.sent_at)}</span>
-          </div>
-          <div class="message-body">${escHtml(message.body)}</div>
-        </a>`;
+        html += `
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px">Goal Progress</div>
+            <div class="goal-row">
+              <span class="goal-start">${firstWeight}kg start</span>
+              <span class="goal-current">${currentWeight}<span class="unit">kg</span></span>
+              <span class="goal-target">${targetWeight}kg target</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:${progress.toFixed(1)}%"></div>
+            </div>
+            <div class="goal-meta">
+              ${parseFloat(toGo) <= 0
+                ? `🎯 <strong>Target reached!</strong>`
+                : parseFloat(lost) > 0
+                ? `<strong>${lost}kg down</strong> · ${toGo}kg to go`
+                : parseFloat(lost) < 0
+                ? `<strong>${Math.abs(lost)}kg up</strong> · ${Math.abs(toGo)}kg to target`
+                : `Just getting started — let's go 💪`}
+            </div>
+          </div>`;
       }
 
       document.getElementById('main-content').innerHTML = html;
+    }
+
+    // ---- Auto motivational message ----
+    function autoMessage(dayNum, streak, name) {
+      if (dayNum === 1) return `Day 1 ${name} — let's dial in and smash these goals today 💪`;
+      if (streak === 0) return `Day ${dayNum} — get back on it today ${name}, let's lock in 🔒`;
+      if (streak >= 14) return `Day ${dayNum} — ${streak} days straight ${name}, you're absolutely dialled in 🔥`;
+      if (streak >= 7)  return `Day ${dayNum} — ${streak} day streak, keep that momentum going ${name} 🔥`;
+      if (streak >= 3)  return `Day ${dayNum} — ${streak} days in a row ${name}, nice work. Stay locked in today`;
+      return `Day ${dayNum} — nice work yesterday ${name}, let's keep pushing today 💪`;
     }
 
     // ---- Habit item builder ----
@@ -872,8 +856,8 @@
           <div class="habit-label"><strong>${label}</strong>${sublabel}</div>
         </div>`;
       }
-      const pct = count / total;
-      const cls = pct >= 0.8 ? 'hit' : count > 0 ? 'logged' : 'miss';
+      const pct  = count / total;
+      const cls  = pct >= 0.8 ? 'hit' : count > 0 ? 'logged' : 'miss';
       const icon = pct >= 0.8 ? '✓' : count > 0 ? '~' : '–';
       return `<div class="habit-item">
         <div class="habit-tick ${cls}">${icon}</div>
@@ -885,100 +869,68 @@
     function calcStreak(checkIns) {
       const dates = checkIns.map(c => c.check_in_date).sort().reverse();
       if (!dates.length) return 0;
-
       let streak = 0;
       let cursor = today;
-
-      // Allow starting from today or yesterday (today's check-in may not be done yet)
       if (dates[0] !== today) {
         const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
         if (dates[0] !== yesterday) return 0;
         cursor = yesterday;
       }
-
       for (const d of dates) {
         if (d === cursor) {
           streak++;
-          const prev = new Date(new Date(cursor + 'T00:00:00').getTime() - 864e5);
-          cursor = prev.toISOString().split('T')[0];
-        } else {
-          break;
-        }
+          cursor = new Date(new Date(cursor + 'T00:00:00').getTime() - 864e5).toISOString().split('T')[0];
+        } else { break; }
       }
       return streak;
     }
 
-    // ---- Week start (Monday) ----
     function getWeekStart() {
       const d   = new Date();
-      const day = d.getDay(); // 0=Sun
-      const diff = (day === 0 ? -6 : 1 - day);
-      const mon  = new Date(d);
-      mon.setDate(d.getDate() + diff);
+      const day = d.getDay();
+      const mon = new Date(d);
+      mon.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
       return mon.toISOString().split('T')[0];
     }
 
-    // ---- Is weight trending toward goal? ----
     function isGoodTrend(data, target) {
       if (data.length < 2) return true;
       const first = data[0].weight_kg;
       const last  = data[data.length - 1].weight_kg;
-      if (!target) return last <= first; // no target: going down is good
+      if (!target) return last <= first;
       return target < first ? last < first : last > first;
     }
 
-    // ---- SVG chart ----
     function buildChart(data, target, lineColor) {
       if (data.length < 2) return '';
-
       const W = 320, H = 80, PAD = 8;
       const weights = data.map(d => d.weight_kg);
       let min = Math.min(...weights);
       let max = Math.max(...weights);
-
-      if (target) {
-        min = Math.min(min, target);
-        max = Math.max(max, target);
-      }
-
+      if (target) { min = Math.min(min, target); max = Math.max(max, target); }
       const range = max - min || 1;
       const xStep = (W - PAD * 2) / (data.length - 1);
-
-      const pts = data.map((d, i) => {
+      const pts   = data.map((d, i) => {
         const x = PAD + i * xStep;
         const y = H - PAD - ((d.weight_kg - min) / range) * (H - PAD * 2);
         return `${x},${y}`;
       });
-
-      const polyline = pts.join(' ');
-
-      // Target line y
       let targetLine = '';
       if (target) {
         const ty = H - PAD - ((target - min) / range) * (H - PAD * 2);
-        targetLine = `<line x1="${PAD}" y1="${ty}" x2="${W - PAD}" y2="${ty}"
-          stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4"/>`;
+        targetLine = `<line x1="${PAD}" y1="${ty}" x2="${W-PAD}" y2="${ty}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4"/>`;
       }
-
-      // First & last labels
-      const firstPt = pts[0].split(',');
-      const lastPt  = pts[pts.length - 1].split(',');
-
+      const lastPt = pts[pts.length - 1].split(',');
       return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
         ${targetLine}
-        <polyline points="${polyline}"
-          fill="none" stroke="${lineColor}" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="${pts.join(' ')}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="${lineColor}"/>
-        <text x="${lastPt[0]}" y="${parseFloat(lastPt[1]) - 6}"
-          font-family="DM Sans,sans-serif" font-size="10" fill="${lineColor}"
-          text-anchor="middle">${data[data.length - 1].weight_kg}kg</text>
+        <text x="${lastPt[0]}" y="${parseFloat(lastPt[1]) - 6}" font-family="DM Sans,sans-serif" font-size="10" fill="${lineColor}" text-anchor="middle">${data[data.length-1].weight_kg}kg</text>
       </svg>`;
     }
 
-    // ---- Escape HTML ----
     function escHtml(s) {
-      return String(s)
+      return String(s || '')
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
