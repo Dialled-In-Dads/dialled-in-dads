@@ -1177,7 +1177,7 @@
 
       try {
         const ext  = coachUploadFile.name.split('.').pop().toLowerCase();
-        const uuid = crypto.randomUUID();
+        const uuid = ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx').replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
         const path = `${clientId}/${uuid}.${ext}`;
 
         const { error: storageErr } = await db.storage

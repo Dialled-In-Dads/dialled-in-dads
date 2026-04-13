@@ -412,6 +412,13 @@
     let clientData = null;
     let selectedFiles = []; // array of { file, pose }
 
+    function genUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
     // ---- Boot ----
     window.addEventListener('DOMContentLoaded', async () => {
       const session = await requireAuth();
@@ -553,7 +560,7 @@
         for (const item of selectedFiles) {
           btn.textContent = `Uploading ${done + 1} of ${total}…`;
           const ext  = item.file.name.split('.').pop().toLowerCase();
-          const path = `${clientData.id}/${crypto.randomUUID()}.${ext}`;
+          const path = `${clientData.id}/${genUUID()}.${ext}`;
 
           const { error: storageErr } = await db.storage
             .from('progress-photos')
