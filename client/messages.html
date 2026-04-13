@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Dialed In Dads">
   <link rel="manifest" href="../manifest.json">
-  <title>Messages — Dialed In Dads</title>
+  <title>Message Coach — Dialed In Dads</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -22,241 +22,108 @@
       --border:  #1E2A3E;
       --orange:  #C1581A;
       --green:   #2ECC8A;
-      --blue:    #5B9BD5;
       --text:    #F0F4F8;
       --muted:   #8892A4;
       --subtle:  #4A5568;
       --nav-h:   64px;
-      --input-h: 68px;
     }
 
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--bg);
       color: var(--text);
-      height: 100vh;
+      min-height: 100vh;
+      padding-bottom: calc(var(--nav-h) + 24px);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
-    /* ---- Header ---- */
     .page-header {
-      padding: 20px 20px 16px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
+      padding: 24px 20px 0;
+      margin-bottom: 20px;
+    }
+    .page-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+    .page-title { font-family: 'Anton', sans-serif; font-size: 30px; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; }
+
+    .content {
+      flex: 1;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      padding: 0 24px 40px;
+      text-align: center;
     }
 
     .coach-avatar {
-      width: 40px; height: 40px;
+      width: 72px; height: 72px;
       background: rgba(193,88,26,0.15);
-      border: 1px solid rgba(193,88,26,0.3);
+      border: 2px solid rgba(193,88,26,0.3);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-family: 'Anton', sans-serif; font-size: 16px; color: var(--orange);
-      flex-shrink: 0;
+      font-family: 'Anton', sans-serif; font-size: 28px; color: var(--orange);
+      margin: 0 auto 16px;
     }
 
-    .header-info { flex: 1; }
-    .header-name { font-weight: 600; font-size: 15px; }
-    .header-sub  { font-size: 12px; color: var(--muted); }
-
-    /* ---- Thread ---- */
-    .thread {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .coach-name {
+      font-size: 18px; font-weight: 600; margin-bottom: 4px;
     }
 
-    .thread-empty {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--subtle);
-      font-size: 14px;
-      text-align: center;
-      line-height: 1.6;
+    .coach-sub {
+      font-size: 13px; color: var(--muted); margin-bottom: 32px;
     }
 
-    /* ---- Bubbles ---- */
-    .bubble-row {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .bubble-row.coach { align-items: flex-start; }
-    .bubble-row.client { align-items: flex-end; }
-
-    .bubble {
-      max-width: 78%;
-      padding: 10px 14px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      word-break: break-word;
-    }
-
-    .bubble.coach {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-      color: var(--text);
-    }
-
-    .bubble.client {
-      background: rgba(193,88,26,0.15);
-      border: 1px solid rgba(193,88,26,0.25);
-      border-bottom-right-radius: 4px;
-      color: var(--text);
-    }
-
-    .bubble-time {
-      font-size: 10px;
-      color: var(--subtle);
-      margin-top: 4px;
-      padding: 0 4px;
-    }
-
-    .bubble-sender {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-      padding: 0 4px;
-    }
-
-    /* ---- Date divider ---- */
-    .date-divider {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 4px 0;
-    }
-
-    .date-divider::before,
-    .date-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
-    .date-divider span {
-      font-size: 11px;
-      color: var(--subtle);
-      white-space: nowrap;
-    }
-
-    /* ---- Input bar ---- */
-    .input-bar {
-      height: var(--input-h);
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      flex-shrink: 0;
-      padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    }
-
-    .msg-input {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 10px 16px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      color: var(--text);
-      outline: none;
-      resize: none;
-      height: 42px;
-      transition: border-color 0.15s;
-    }
-
-    .msg-input:focus { border-color: var(--orange); }
-    .msg-input::placeholder { color: var(--subtle); }
-
-    .btn-send {
-      width: 42px; height: 42px;
-      background: var(--orange);
-      border: none;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
+    .whatsapp-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; max-width: 300px;
+      padding: 16px 24px;
+      background: #25D366;
+      border: none; border-radius: 14px;
+      font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700;
+      color: #fff; text-decoration: none;
       transition: background 0.15s, transform 0.1s;
       -webkit-tap-highlight-color: transparent;
     }
+    .whatsapp-btn:hover  { background: #20bd5a; }
+    .whatsapp-btn:active { transform: scale(0.97); }
 
-    .btn-send:hover  { background: #D4651F; }
-    .btn-send:active { transform: scale(0.94); }
+    .whatsapp-btn svg { width: 22px; height: 22px; fill: #fff; flex-shrink: 0; }
 
-    .btn-send svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-
-    /* ---- Bottom nav ---- */
-    .bottom-nav {
-      position: relative;
-      height: var(--nav-h);
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      padding: 0 4px;
-      flex-shrink: 0;
+    .no-number {
+      font-size: 14px; color: var(--muted); line-height: 1.5;
+      max-width: 260px;
     }
 
+    /* Bottom nav */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: var(--nav-h); background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-around;
+      padding: 0 4px; z-index: 100;
+    }
     .nav-item {
       display: flex; flex-direction: column; align-items: center; gap: 3px;
       text-decoration: none; flex: 1; padding: 10px 0;
       -webkit-tap-highlight-color: transparent;
     }
-
     .nav-item svg { width: 22px; height: 22px; stroke: var(--subtle); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .nav-label { font-size: 10px; font-weight: 500; color: var(--subtle); }
     .nav-item.active svg { stroke: var(--orange); }
     .nav-item.active .nav-label { color: var(--orange); }
-
-    .loading-state { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
   <div class="page-header">
-    <div class="coach-avatar" id="coach-initial">F</div>
-    <div class="header-info">
-      <div class="header-name" id="coach-name">Your Coach</div>
-      <div class="header-sub">Dialed In Dads</div>
-    </div>
+    <div class="page-label">Contact</div>
+    <div class="page-title">Message Coach</div>
   </div>
 
-  <!-- Thread -->
-  <div class="thread" id="thread">
-    <div class="loading-state">Loading messages...</div>
+  <div class="content" id="content">
+    <div style="color:var(--muted);font-size:14px">Loading...</div>
   </div>
 
-  <!-- Input bar -->
-  <div class="input-bar">
-    <input class="msg-input" id="msg-input" placeholder="Message your coach…" type="text" autocomplete="off">
-    <button class="btn-send" onclick="sendMessage()">
-      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-    </button>
-  </div>
-
-  <!-- Bottom Nav -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
@@ -270,149 +137,53 @@
       <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M6 12h12M3 7h3M18 7h3M3 17h3M18 17h3"/></svg>
       <span class="nav-label">Workout</span>
     </a>
-    <a href="messages.html" class="nav-item active">
-      <svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-      <span class="nav-label">Messages</span>
+    <a href="photos.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      <span class="nav-label">Photos</span>
     </a>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../auth.js"></script>
   <script>
-    let clientData = null;
-    let coachId    = null;
-    let messages   = [];
-
-    // ---- Boot ----
     (async () => {
-      const session = await requireClient();
+      const session = await requireAuth();
       if (!session) return;
 
-      clientData = await getCurrentClient(session.user.id);
-      if (!clientData) return;
+      const client = await getCurrentClient(session.user.id);
+      if (!client) return;
 
-      coachId = clientData.coach_id;
-
-      // Get coach name
       const { data: coach } = await db
         .from('coaches')
-        .select('name')
-        .eq('id', coachId)
+        .select('name, whatsapp')
+        .eq('id', client.coach_id)
         .maybeSingle();
 
-      if (coach?.name) {
-        document.getElementById('coach-name').textContent = coach.name;
-        document.getElementById('coach-initial').textContent = coach.name.charAt(0).toUpperCase();
+      const content   = document.getElementById('content');
+      const name      = coach?.name || 'Your Coach';
+      const initial   = name.charAt(0).toUpperCase();
+      const whatsapp  = coach?.whatsapp?.replace(/\D/g, ''); // digits only
+
+      if (whatsapp) {
+        const url = `https://wa.me/${whatsapp}`;
+        content.innerHTML = `
+          <div class="coach-avatar">${initial}</div>
+          <div class="coach-name">${name}</div>
+          <div class="coach-sub">Your Dialed In Dads coach</div>
+          <a href="${url}" class="whatsapp-btn" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+            </svg>
+            Open WhatsApp
+          </a>`;
+      } else {
+        content.innerHTML = `
+          <div class="coach-avatar">${initial}</div>
+          <div class="coach-name">${name}</div>
+          <div class="coach-sub" style="margin-bottom:16px">Your Dialed In Dads coach</div>
+          <div class="no-number">Your coach hasn't set up WhatsApp messaging yet. Check back soon.</div>`;
       }
-
-      // Mark all coach messages as read
-      await db.from('messages')
-        .update({ is_read: true })
-        .eq('client_id', clientData.id)
-        .eq('sender_role', 'coach')
-        .eq('is_read', false);
-
-      await loadMessages();
-
-      // Enter to send
-      document.getElementById('msg-input').addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-      });
-
-      // Poll for new messages every 15s
-      setInterval(loadMessages, 15000);
     })();
-
-    // ---- Load messages ----
-    async function loadMessages() {
-      const { data } = await db
-        .from('messages')
-        .select('*')
-        .eq('client_id', clientData.id)
-        .order('sent_at', { ascending: true });
-
-      messages = data || [];
-      renderThread();
-    }
-
-    // ---- Render thread ----
-    function renderThread() {
-      const el = document.getElementById('thread');
-
-      if (!messages.length) {
-        el.innerHTML = `<div class="thread-empty">
-          <div>
-            <div style="font-size:32px;margin-bottom:12px">💬</div>
-            <div>No messages yet.<br>Send your coach a message to get started.</div>
-          </div>
-        </div>`;
-        return;
-      }
-
-      let html = '';
-      let lastDate = '';
-
-      messages.forEach(msg => {
-        const msgDate = msg.sent_at.split('T')[0];
-        if (msgDate !== lastDate) {
-          html += `<div class="date-divider"><span>${formatDate(msgDate)}</span></div>`;
-          lastDate = msgDate;
-        }
-
-        const role = msg.sender_role;
-        html += `<div class="bubble-row ${role}">
-          <div class="bubble-sender">${role === 'coach' ? 'Coach' : 'You'}</div>
-          <div class="bubble ${role}">${esc(msg.body)}</div>
-          <div class="bubble-time">${formatTime(msg.sent_at)}</div>
-        </div>`;
-      });
-
-      el.innerHTML = html;
-      el.scrollTop = el.scrollHeight;
-    }
-
-    // ---- Send message ----
-    async function sendMessage() {
-      const input = document.getElementById('msg-input');
-      const body  = input.value.trim();
-      if (!body) return;
-
-      input.value = '';
-
-      const { data, error } = await db.from('messages').insert({
-        coach_id:    coachId,
-        client_id:   clientData.id,
-        sender_role: 'client',
-        body,
-        is_read:     false,
-      }).select().single();
-
-      if (error) { console.error(error); return; }
-
-      messages.push(data);
-      renderThread();
-    }
-
-    // ---- Helpers ----
-    function formatDate(dateStr) {
-      const d = new Date(dateStr + 'T00:00:00');
-      const today = new Date().toISOString().split('T')[0];
-      const yest  = new Date(Date.now() - 864e5).toISOString().split('T')[0];
-      if (dateStr === today) return 'Today';
-      if (dateStr === yest)  return 'Yesterday';
-      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    }
-
-    function formatTime(iso) {
-      return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function esc(s) {
-      return String(s || '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-        .replace(/\n/g,'<br>');
-    }
   </script>
 
 </body>

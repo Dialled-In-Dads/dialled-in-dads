@@ -590,6 +590,7 @@
     </div>
     <div class="nav-right">
       <button class="btn-invite" onclick="openInviteModal()">+ Invite Client</button>
+      <button class="btn-signout" onclick="openSettings()" style="border-color:var(--border)" title="Settings">⚙ Settings</button>
       <span class="coach-badge" id="coach-name-badge"></span>
       <button class="btn-signout" onclick="signOut()">Sign Out</button>
     </div>
@@ -689,6 +690,25 @@
     </div>
   </div>
 
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-title">Settings</div>
+      <div class="modal-sub" style="margin-bottom:20px">Manage your coach profile.</div>
+
+      <div class="form-group">
+        <label class="form-label" for="settings-whatsapp">WhatsApp Number</label>
+        <input class="form-input" id="settings-whatsapp" type="tel" placeholder="e.g. 447911123456 (include country code, no +)">
+        <div style="font-size:11px;color:var(--subtle);margin-top:5px">Clients will tap a button to open WhatsApp and message you directly.</div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+        <button class="btn-primary" id="btn-save-settings" onclick="saveSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../auth.js"></script>
   <script>
@@ -753,6 +773,18 @@
 
       const checkins = recentCheckins || [];
 
+      // Fetch unviewed photos per client
+      const { data: unviewedPhotos } = await db
+        .from('progress_photos')
+        .select('client_id')
+        .in('client_id', clientIds)
+        .eq('viewed_by_coach', false);
+
+      const unviewedCount = {};
+      (unviewedPhotos || []).forEach(p => {
+        unviewedCount[p.client_id] = (unviewedCount[p.client_id] || 0) + 1;
+      });
+
       // Today's check-ins
       todayCheckins = checkins.filter(c => c.check_in_date === today);
 
@@ -806,7 +838,7 @@
           daysSince = Math.round((now - last) / 864e5);
         }
 
-        clientMap[client.id] = { client, lastCheckin, todayCI, streak, trend, daysSince };
+        clientMap[client.id] = { client, lastCheckin, todayCI, streak, trend, daysSince, newPhotos: unviewedCount[client.id] || 0 };
       });
 
       // Stats
@@ -853,7 +885,7 @@
       }
 
       const html = sorted.map(client => {
-        const { lastCheckin, todayCI, streak, trend, daysSince } = clientMap[client.id];
+        const { lastCheckin, todayCI, streak, trend, daysSince, newPhotos } = clientMap[client.id];
         const needsAttention = daysSince === null || daysSince >= 2;
         const initial = (client.name || '?').charAt(0).toUpperCase();
         const phase = client.current_phase || 'No Phase';
@@ -880,7 +912,10 @@
               ${needsAttention ? '<div class="attention-dot"></div>' : ''}
             </div>
             <div>
-              <div class="client-name">${esc(client.name || 'Unnamed')}</div>
+              <div class="client-name" style="display:flex;align-items:center;gap:6px">
+                ${esc(client.name || 'Unnamed')}
+                ${newPhotos ? `<span style="background:var(--orange);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;letter-spacing:0.3px">${newPhotos} photo${newPhotos > 1 ? 's' : ''}</span>` : ''}
+              </div>
               <div class="client-phase">${esc(phase)}</div>
             </div>
           </div>
@@ -981,6 +1016,38 @@
     }
 
     // ---- Invite Modal ----
+    // ---- Settings ----
+    function openSettings() {
+      document.getElementById('settings-whatsapp').value = coachData?.whatsapp || '';
+      document.getElementById('btn-save-settings').textContent = 'Save';
+      document.getElementById('btn-save-settings').disabled = false;
+      document.getElementById('settings-modal').classList.add('open');
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-modal').classList.remove('open');
+    }
+
+    async function saveSettings() {
+      const btn = document.getElementById('btn-save-settings');
+      const whatsapp = document.getElementById('settings-whatsapp').value.trim() || null;
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      const { error } = await db.from('coaches').update({ whatsapp }).eq('id', coachData.id);
+      if (!error) {
+        coachData.whatsapp = whatsapp;
+        btn.textContent = '✓ Saved';
+        setTimeout(closeSettings, 800);
+      } else {
+        btn.textContent = 'Error — try again';
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('settings-modal').addEventListener('click', e => {
+      if (e.target === document.getElementById('settings-modal')) closeSettings();
+    });
+
     function openInviteModal() {
       document.getElementById('invite-email').value = '';
       document.getElementById('invite-name').value = '';

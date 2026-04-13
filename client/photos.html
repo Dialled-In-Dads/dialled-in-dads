@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dialed In Dads">
+  <link rel="manifest" href="../manifest.json">
+  <title>Progress Photos — Dialed In Dads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0D1117;
+      --surface:      #131B2E;
+      --border:       #1E2A3E;
+      --orange:       #C1581A;
+      --orange-hover: #D4651F;
+      --green:        #2ECC8A;
+      --blue:         #5B9BD5;
+      --text:         #F0F4F8;
+      --muted:        #8892A4;
+      --subtle:       #4A5568;
+      --nav-h:        64px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: calc(var(--nav-h) + 24px);
+    }
+
+    .page-header {
+      padding: 24px 20px 0;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .page-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+    .page-title { font-family: 'Anton', sans-serif; font-size: 30px; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; }
+
+    .signout-btn {
+      background: none; border: 1px solid var(--border); border-radius: 8px;
+      padding: 5px 10px; font-family: 'DM Sans', sans-serif; font-size: 11px;
+      color: var(--subtle); cursor: pointer; margin-top: 4px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .signout-btn:hover { border-color: var(--subtle); color: var(--muted); }
+
+    .content { padding: 0 16px; }
+
+    /* ---- Upload button ---- */
+    .upload-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px;
+      background: var(--orange); border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      color: #fff; cursor: pointer; margin-bottom: 20px;
+      transition: background 0.15s;
+    }
+    .upload-btn:hover { background: var(--orange-hover); }
+    .upload-btn svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ---- Empty state ---- */
+    .empty-state {
+      text-align: center; padding: 48px 20px;
+      color: var(--muted);
+    }
+    .empty-state svg { width: 48px; height: 48px; stroke: var(--subtle); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.5; }
+
+    /* ---- Photo grid ---- */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .photo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .photo-card:hover { border-color: var(--subtle); }
+
+    .photo-thumb {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      display: block;
+    }
+
+    .photo-meta {
+      padding: 8px 10px;
+    }
+    .photo-pose {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--orange); margin-bottom: 2px;
+    }
+    .photo-date {
+      font-size: 11px; color: var(--muted);
+    }
+    .photo-weight {
+      font-size: 11px; color: var(--text); font-weight: 600; margin-top: 2px;
+    }
+
+    /* ---- Modal overlay ---- */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      display: flex; align-items: flex-end;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open {
+      opacity: 1; pointer-events: all;
+    }
+    .modal-sheet {
+      width: 100%; background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 20px 32px;
+      transform: translateY(100%);
+      transition: transform 0.25s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-overlay.open .modal-sheet {
+      transform: translateY(0);
+    }
+
+    .modal-handle {
+      width: 36px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 0 auto 16px;
+    }
+    .modal-title {
+      font-family: 'Anton', sans-serif; font-size: 22px;
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      appearance: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none; border-color: var(--orange);
+    }
+    .form-textarea { resize: none; min-height: 72px; }
+
+    /* Pose selector */
+    .pose-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .pose-btn {
+      padding: 10px 6px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+      color: var(--muted); cursor: pointer; text-align: center;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .pose-btn.selected {
+      border-color: var(--orange); color: var(--orange);
+      background: rgba(193,88,26,0.1);
+    }
+    .pose-icon { font-size: 20px; display: block; margin-bottom: 3px; }
+
+    /* Photo file input */
+    .photo-input-wrap {
+      position: relative;
+    }
+    .photo-input-label {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 32px 16px;
+      background: var(--bg); border: 2px dashed var(--border);
+      border-radius: 10px; cursor: pointer;
+      font-size: 13px; color: var(--muted);
+      transition: border-color 0.15s;
+      flex-direction: column;
+    }
+    .photo-input-label svg { width: 28px; height: 28px; stroke: var(--subtle); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .photo-input-label:hover { border-color: var(--orange); }
+    .photo-input-label.has-file { border-color: var(--green); color: var(--green); }
+    #photo-file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+    .photo-preview-img {
+      width: 100%; max-height: 200px; object-fit: cover;
+      border-radius: 8px; margin-top: 8px; display: none;
+    }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-cancel {
+      flex: 1; padding: 13px; background: none;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--muted); cursor: pointer;
+    }
+    .btn-upload {
+      flex: 2; padding: 13px; background: var(--orange);
+      border: none; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      color: #fff; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-upload:hover:not(:disabled) { background: var(--orange-hover); }
+    .btn-upload:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---- Lightbox ---- */
+    .lightbox {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 300;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+      padding: 20px;
+    }
+    .lightbox.open { opacity: 1; pointer-events: all; }
+    .lightbox-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.1); border: none;
+      border-radius: 50%; width: 36px; height: 36px;
+      color: var(--text); font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lightbox img {
+      max-width: 100%; max-height: 65vh;
+      object-fit: contain; border-radius: 8px;
+    }
+    .lightbox-meta {
+      margin-top: 16px; text-align: center;
+    }
+    .lightbox-pose { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--orange); }
+    .lightbox-date { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .lightbox-weight { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 4px; }
+    .lightbox-notes { font-size: 13px; color: var(--muted); margin-top: 6px; max-width: 300px; line-height: 1.4; }
+
+    /* ---- Loading ---- */
+    .loading-state { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 14px; }
+
+    /* ---- Bottom nav ---- */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: var(--nav-h); background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-around;
+      padding: 0 4px; z-index: 100;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      text-decoration: none; flex: 1; padding: 10px 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item svg { width: 22px; height: 22px; stroke: var(--subtle); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .nav-label { font-size: 10px; font-weight: 500; color: var(--subtle); letter-spacing: 0.2px; }
+    .nav-item.active svg { stroke: var(--orange); }
+    .nav-item.active .nav-label { color: var(--orange); }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div>
+      <div class="page-label">Progress</div>
+      <div class="page-title">Photos</div>
+    </div>
+    <button class="signout-btn" onclick="signOut()">Sign Out</button>
+  </div>
+
+  <div class="content">
+    <button class="upload-btn" onclick="openUpload()">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+      Upload Progress Photo
+    </button>
+    <div id="gallery-wrap">
+      <div class="loading-state">Loading photos...</div>
+    </div>
+  </div>
+
+  <!-- Upload modal -->
+  <div class="modal-overlay" id="upload-modal" onclick="handleOverlayClick(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Add Photo</div>
+
+      <div class="form-group">
+        <label class="form-label">Photo *</label>
+        <div class="photo-input-wrap">
+          <label class="photo-input-label" id="file-label" for="photo-file-input">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <span id="file-label-text">Tap to choose photo</span>
+          </label>
+          <input type="file" id="photo-file-input" accept="image/*" capture="environment" onchange="handleFileSelect(this)">
+        </div>
+        <img id="photo-preview" class="photo-preview-img" alt="Preview">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Pose *</label>
+        <div class="pose-grid">
+          <button class="pose-btn selected" data-pose="front" onclick="selectPose(this)">
+            <span class="pose-icon">⬆️</span> Front
+          </button>
+          <button class="pose-btn" data-pose="side" onclick="selectPose(this)">
+            <span class="pose-icon">➡️</span> Side
+          </button>
+          <button class="pose-btn" data-pose="back" onclick="selectPose(this)">
+            <span class="pose-icon">⬇️</span> Back
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="photo-date">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Weight (kg) <span style="color:var(--subtle);font-size:10px;text-transform:none">optional</span></label>
+        <input type="number" class="form-input" id="photo-weight" placeholder="e.g. 82.5" step="0.1" min="30" max="300">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes <span style="color:var(--subtle);font-size:10px;text-transform:none">optional</span></label>
+        <textarea class="form-textarea" id="photo-notes" placeholder="How are you feeling? Any context for this check-in..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeUpload()">Cancel</button>
+        <button class="btn-upload" id="btn-upload" onclick="uploadPhoto()">Upload Photo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="closeLightbox()">×</button>
+    <img id="lightbox-img" src="" alt="">
+    <div class="lightbox-meta">
+      <div class="lightbox-pose" id="lightbox-pose"></div>
+      <div class="lightbox-date" id="lightbox-date"></div>
+      <div class="lightbox-weight" id="lightbox-weight"></div>
+      <div class="lightbox-notes" id="lightbox-notes"></div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+      <span class="nav-label">Dashboard</span>
+    </a>
+    <a href="check-in.html" class="nav-item">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span class="nav-label">Check-In</span>
+    </a>
+    <a href="workout.html" class="nav-item">
+      <svg viewBox="0 0 24 24">
+        <path d="M6 5v14M18 5v14M6 12h12M3 7h3M18 7h3M3 17h3M18 17h3"/>
+      </svg>
+      <span class="nav-label">Workout</span>
+    </a>
+    <a href="photos.html" class="nav-item active">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <path d="m21 15-5-5L5 21"/>
+      </svg>
+      <span class="nav-label">Photos</span>
+    </a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../auth.js"></script>
+  <script>
+    const STORAGE_URL = 'https://oboeavvjrtuzeovrjsht.supabase.co/storage/v1/object/public/progress-photos';
+
+    let clientData = null;
+    let selectedPose = 'front';
+    let selectedFile = null;
+
+    // ---- Boot ----
+    window.addEventListener('DOMContentLoaded', async () => {
+      const session = await requireAuth();
+      if (!session) return;
+
+      const client = await getCurrentClient(session.user.id);
+      if (!client) { document.getElementById('gallery-wrap').innerHTML = '<div class="empty-state"><p>Client profile not found.</p></div>'; return; }
+      clientData = client;
+
+      document.getElementById('photo-date').value = new Date().toISOString().split('T')[0];
+      await loadPhotos();
+    });
+
+    // ---- Load gallery ----
+    async function loadPhotos() {
+      const { data: photos, error } = await db
+        .from('progress_photos')
+        .select('*')
+        .eq('client_id', clientData.id)
+        .order('taken_at', { ascending: false });
+
+      if (error) { document.getElementById('gallery-wrap').innerHTML = '<div class="empty-state"><p>Could not load photos.</p></div>'; return; }
+
+      if (!photos || photos.length === 0) {
+        document.getElementById('gallery-wrap').innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <p>No photos yet.<br>Upload your first progress photo to get started.</p>
+          </div>`;
+        return;
+      }
+
+      const grid = photos.map((p, i) => `
+        <div class="photo-card" onclick="openLightbox(${i})">
+          <img class="photo-thumb" src="${escHtml(p.photo_url)}" alt="${escHtml(p.pose)} photo" loading="lazy">
+          <div class="photo-meta">
+            <div class="photo-pose">${escHtml(p.pose)}</div>
+            <div class="photo-date">${formatDate(p.taken_at)}</div>
+            ${p.weight_kg ? `<div class="photo-weight">${p.weight_kg}kg</div>` : ''}
+          </div>
+        </div>`).join('');
+
+      document.getElementById('gallery-wrap').innerHTML = `<div class="photo-grid">${grid}</div>`;
+
+      // Store photos globally for lightbox
+      window._photos = photos;
+    }
+
+    // ---- Upload modal ----
+    function openUpload() {
+      document.getElementById('upload-modal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeUpload() {
+      document.getElementById('upload-modal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('upload-modal')) closeUpload();
+    }
+
+    function handleFileSelect(input) {
+      const file = input.files[0];
+      if (!file) return;
+      selectedFile = file;
+      const label = document.getElementById('file-label');
+      label.classList.add('has-file');
+      document.getElementById('file-label-text').textContent = file.name;
+      const preview = document.getElementById('photo-preview');
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    }
+
+    function selectPose(btn) {
+      document.querySelectorAll('.pose-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedPose = btn.dataset.pose;
+    }
+
+    async function uploadPhoto() {
+      if (!selectedFile) { alert('Please choose a photo first.'); return; }
+      const btn = document.getElementById('btn-upload');
+      btn.disabled = true; btn.textContent = 'Uploading…';
+
+      try {
+        // Generate unique filename
+        const ext  = selectedFile.name.split('.').pop().toLowerCase();
+        const uuid = crypto.randomUUID();
+        const path = `${clientData.id}/${uuid}.${ext}`;
+
+        // Upload to Supabase Storage
+        const { error: storageErr } = await db.storage
+          .from('progress-photos')
+          .upload(path, selectedFile, { contentType: selectedFile.type, upsert: false });
+
+        if (storageErr) throw storageErr;
+
+        const photoUrl = `${STORAGE_URL}/${path}`;
+        const takenAt  = document.getElementById('photo-date').value || new Date().toISOString().split('T')[0];
+        const weightKg = parseFloat(document.getElementById('photo-weight').value) || null;
+        const notes    = document.getElementById('photo-notes').value.trim() || null;
+
+        // Insert DB record
+        const { error: dbErr } = await db.from('progress_photos').insert({
+          client_id:        clientData.id,
+          photo_url:        photoUrl,
+          pose:             selectedPose,
+          taken_at:         takenAt,
+          weight_kg:        weightKg,
+          notes:            notes,
+          uploaded_by:      'client',
+          viewed_by_coach:  false
+        });
+
+        if (dbErr) throw dbErr;
+
+        // Reset form
+        selectedFile = null;
+        document.getElementById('photo-file-input').value = '';
+        document.getElementById('file-label').classList.remove('has-file');
+        document.getElementById('file-label-text').textContent = 'Tap to choose photo';
+        document.getElementById('photo-preview').style.display = 'none';
+        document.getElementById('photo-weight').value = '';
+        document.getElementById('photo-notes').value = '';
+        document.getElementById('photo-date').value = new Date().toISOString().split('T')[0];
+        document.querySelectorAll('.pose-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelector('[data-pose="front"]').classList.add('selected');
+        selectedPose = 'front';
+
+        closeUpload();
+        await loadPhotos();
+
+      } catch (err) {
+        alert('Upload failed: ' + (err.message || 'Unknown error'));
+        btn.disabled = false; btn.textContent = 'Upload Photo';
+      }
+    }
+
+    // ---- Lightbox ----
+    function openLightbox(index) {
+      const p = window._photos[index];
+      if (!p) return;
+      document.getElementById('lightbox-img').src = p.photo_url;
+      document.getElementById('lightbox-pose').textContent = p.pose.charAt(0).toUpperCase() + p.pose.slice(1);
+      document.getElementById('lightbox-date').textContent = formatDate(p.taken_at);
+      document.getElementById('lightbox-weight').textContent = p.weight_kg ? `${p.weight_kg}kg` : '';
+      document.getElementById('lightbox-notes').textContent = p.notes || '';
+      document.getElementById('lightbox').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // ---- Helpers ----
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function escHtml(s) {
+      return String(s || '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+
+</body>
+</html>
