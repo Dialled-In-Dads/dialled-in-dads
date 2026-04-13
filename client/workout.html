@@ -649,7 +649,7 @@
             html += `<p style="font-size:13px;color:var(--subtle)">No exercises in this block.</p>`;
           } else {
             exs.forEach(ex => {
-              const sets     = ex.sets || 3;
+              const sets     = parseSets(ex.sets, ex.rep_scheme);
               const target   = ex.target_weight_kg;
               const prev     = prevSets[ex.id] || {};
               const logged   = loggedSets[ex.id] || {};
@@ -966,6 +966,12 @@
       if (tier === 'win')   return 'Key lift — non-negotiable';
       if (tier === 'bonus') return 'Supporting compound';
       return 'Finishing touches';
+    }
+
+    function parseSets(explicit, scheme) {
+      if (explicit) return explicit;
+      const m = (scheme || '').match(/^(\d+)\s*[x×]/i);
+      return m ? parseInt(m[1]) : 3;
     }
 
     function esc(s) {
