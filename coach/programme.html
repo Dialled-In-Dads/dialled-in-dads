@@ -252,6 +252,14 @@
     }
     .btn-copy-week:hover { color: var(--blue); background: rgba(91,155,213,0.1); }
 
+    .btn-del-week {
+      background: none; border: none; color: var(--subtle);
+      font-size: 15px; cursor: pointer; padding: 2px 5px;
+      border-radius: 4px; line-height: 1; flex-shrink: 0;
+      transition: color 0.12s, background 0.12s;
+    }
+    .btn-del-week:hover { color: #e05555; background: rgba(224,85,85,0.1); }
+
     .btn-copy-day {
       background: none; border: none; color: transparent;
       font-size: 11px; cursor: pointer; padding: 1px 4px;
@@ -592,8 +600,6 @@
       font-size: 13px;
       color: var(--orange);
     }
-    .vol-chip.high span { color: var(--green); }
-    .vol-chip.low  span { color: var(--subtle); }
 
     /* ===== SAVE TO LIBRARY ===== */
     .save-lib-row {
@@ -1160,6 +1166,7 @@
             <div class="week-header ${isOpen ? 'open' : ''}" onclick="toggleWeek('${w.id}')">
               <span class="week-label">Week ${w.week_number}</span>
               <button class="btn-copy-week" title="Copy week" onclick="event.stopPropagation();copyWeek('${w.id}')">⎘</button>
+              <button class="btn-del-week" title="Delete week" onclick="event.stopPropagation();deleteWeek('${w.id}')">×</button>
               <span class="week-chevron">▼</span>
             </div>
             <div class="week-days ${isOpen ? 'open' : ''}">
@@ -1186,6 +1193,17 @@
       if (!wasOpen && selDay?.week_id !== weekId) selDay = null;
       renderStructure();
       if (selWeek && !selDay) showWeekVolume(selWeek);
+    }
+
+    async function deleteWeek(weekId) {
+      if (!confirm('Delete this week and all its days and exercises?')) return;
+      const { error } = await db.from('programme_weeks').delete().eq('id', weekId);
+      if (error) { alert(error.message); return; }
+      weeks = weeks.filter(w => w.id !== weekId);
+      delete days[weekId];
+      if (selWeek === weekId) { selWeek = null; selDay = null; }
+      renderStructure();
+      renderEditor();
     }
 
     async function addWeek() {
@@ -1401,7 +1419,7 @@
       for (const b of blockList) {
         for (const ex of (exMap[b.id] || [])) {
           console.log('[VOL]', ex.exercise_name, '| sets col:', ex.sets, '| rep_scheme:', ex.rep_scheme, '| muscle:', ex.muscle_group);
-          const muscle = ex.muscle_group || 'Other';
+          const muscle = ex.muscle_group || 'Forearms';
           const sets   = parseSets(ex.rep_scheme, ex.sets);
           console.log('[VOL] → parsed sets:', sets);
           vol[muscle]  = (vol[muscle] || 0) + sets;
@@ -1416,8 +1434,7 @@
       if (!entries.length) return '';
       const max = Math.max(...entries.map(e => e[1]));
       const chips = entries.map(([muscle, sets]) => {
-        const cls = sets >= 12 ? 'high' : sets <= 4 ? 'low' : '';
-        return `<div class="vol-chip ${cls}">${muscle} <span>${sets}</span></div>`;
+        return `<div class="vol-chip">${muscle} <span>${sets}</span></div>`;
       }).join('');
       return `<div class="volume-summary">
         <div class="volume-summary-title">Day Volume · Sets per Muscle</div>
@@ -1457,8 +1474,7 @@
       const el = document.getElementById('editor-content');
       const chips = entries.length
         ? entries.map(([muscle, sets]) => {
-            const cls = sets >= 20 ? 'high' : sets <= 6 ? 'low' : '';
-            return `<div class="vol-chip ${cls}">${muscle} <span>${sets}</span></div>`;
+            return `<div class="vol-chip">${muscle} <span>${sets}</span></div>`;
           }).join('')
         : '<span style="color:var(--subtle);font-size:13px">No exercises logged yet</span>';
 
