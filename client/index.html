@@ -672,21 +672,14 @@
       // Parallel fetches
       const [
         { data: checkIns },
-        { data: goals },
         { data: message },
+        { data: programme },
       ] = await Promise.all([
         db.from('check_ins')
           .select('check_in_date, weight_kg, calories_yesterday, protein_yesterday_g, steps_yesterday, feeling_score, win_completed')
           .eq('client_id', client.id)
           .order('check_in_date', { ascending: false })
           .limit(30),
-        db.from('client_goals')
-          .select('*')
-          .eq('client_id', client.id)
-          .lte('effective_from', today)
-          .order('effective_from', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
         db.from('messages')
           .select('body, sent_at, is_read, sender_role')
           .eq('client_id', client.id)
@@ -694,13 +687,16 @@
           .order('sent_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
+        client.programme_id
+          ? db.from('programmes').select('name').eq('id', client.programme_id).maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
 
-      renderDashboard(client, checkIns || [], goals, message);
+      renderDashboard(client, checkIns || [], message, programme);
     })();
 
     // ---- Render ----
-    function renderDashboard(client, checkIns, goals, message) {
+    function renderDashboard(client, checkIns, message, programme) {
       const latest     = checkIns[0] || null;
       const todayCI    = checkIns.find(c => c.check_in_date === today);
 
@@ -718,11 +714,11 @@
       const thisWeek  = checkIns.filter(c => c.check_in_date >= weekStart);
 
       const habCalsLogged = thisWeek.filter(c => c.calories_yesterday != null).length;
-      const habCalsHit    = goals?.calorie_goal
+      const habCalsHit    = client.goal_calories
         ? thisWeek.filter(c => c.calories_yesterday != null && c.calories_yesterday <= goals.calorie_goal * 1.05).length
         : null;
       const habWorkout    = thisWeek.filter(c => c.win_completed).length;
-      const habSteps      = goals?.step_goal
+      const habSteps      = client.goal_steps
         ? thisWeek.filter(c => c.steps_yesterday != null && c.steps_yesterday >= goals.step_goal).length
         : null;
 
@@ -733,8 +729,8 @@
         .reverse();
 
       // Goal progress
-      const startWeight  = goals?.target_weight_kg ? null : null; // no start stored, use first entry
-      const targetWeight = goals?.target_weight_kg || null;
+      const startWeight  = client.goal_weight ? null : null; // no start stored, use first entry
+      const targetWeight = client.goal_weight || null;
       const currentWeight = latest?.weight_kg || null;
 
       // Build HTML
@@ -755,12 +751,12 @@
         <div class="stat-card">
           <div class="stat-label">Cals Yesterday</div>
           <div class="stat-value">${latest?.calories_yesterday != null ? latest.calories_yesterday.toLocaleString() : '—'}<span class="unit">kcal</span></div>
-          <div class="stat-sub">${goals?.calorie_goal ? `Goal: ${goals.calorie_goal.toLocaleString()}` : 'No goal set'}</div>
+          <div class="stat-sub">${client.goal_calories ? `Goal: ${goals.calorie_goal.toLocaleString()}` : 'No goal set'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Steps Yesterday</div>
           <div class="stat-value">${latest?.steps_yesterday != null ? (latest.steps_yesterday >= 1000 ? (latest.steps_yesterday/1000).toFixed(1)+'k' : latest.steps_yesterday) : '—'}</div>
-          <div class="stat-sub">${goals?.step_goal ? `Goal: ${(goals.step_goal/1000).toFixed(0)}k` : 'No goal set'}</div>
+          <div class="stat-sub">${client.goal_steps ? `Goal: ${(goals.step_goal/1000).toFixed(0)}k` : 'No goal set'}</div>
         </div>
       </div>`;
 
@@ -832,20 +828,19 @@
         </div>
         <div class="habits-grid">
           ${habitItem('Cals Logged', habCalsLogged, daysThisWeek, 'Tracked', true)}
-          ${habitItem('Cal Goal Hit', habCalsHit, daysThisWeek, goals?.calorie_goal ? 'Tracked' : 'No goal set', goals?.calorie_goal != null)}
+          ${habitItem('Cal Goal Hit', habCalsHit, daysThisWeek, client.goal_calories ? 'Tracked' : 'No goal set', client.goal_calories != null)}
           ${habitItem('Workout Done', habWorkout, daysThisWeek, 'Logged', true)}
-          ${habitItem('Steps Goal', habSteps, daysThisWeek, goals?.step_goal ? 'Tracked' : 'No goal set', goals?.step_goal != null)}
+          ${habitItem('Steps Goal', habSteps, daysThisWeek, client.goal_steps ? 'Tracked' : 'No goal set', client.goal_steps != null)}
         </div>
       </div>`;
 
-      // ---- Workout card (placeholder until programme builder done) ----
+      // ---- Workout card ----
       html += `<a href="workout.html" class="workout-card">
         <div class="card-header" style="margin-bottom:12px">
           <div class="card-title">Today's Workout</div>
+          ${programme ? `<div style="font-size:12px;color:var(--orange);font-weight:600">${esc(programme.name)}</div>` : ''}
         </div>
-        <div class="no-programme">
-          <p>Programme coming soon.<br>Tap to go to the workout page.</p>
-        </div>
+        ${!programme ? `<div class="no-programme"><p>No programme assigned yet.</p></div>` : ''}
         <div class="workout-cta">
           <span class="workout-cta-text">Open Workout</span>
           <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
