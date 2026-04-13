@@ -147,7 +147,7 @@
   <script src="../auth.js"></script>
   <script>
     (async () => {
-      const session = await requireAuth();
+      const session = await requireClient();
       if (!session) return;
 
       const client = await getCurrentClient(session.user.id);
