@@ -85,6 +85,22 @@
       gap: 10px;
     }
 
+    /* Date groups */
+    .photo-group { margin-bottom: 20px; }
+    .photo-group-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .photo-group-date {
+      font-family: 'Anton', sans-serif; font-size: 14px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .photo-group-weight {
+      background: rgba(193,88,26,0.12); border: 1px solid rgba(193,88,26,0.25);
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 11px; font-weight: 600; color: var(--orange);
+    }
+    .photo-group-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+
     .photo-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -451,20 +467,39 @@
         return;
       }
 
-      const grid = photos.map((p, i) => `
-        <div class="photo-card" onclick="openLightbox(${i})">
-          <img class="photo-thumb" src="${escHtml(p.photo_url)}" alt="${escHtml(p.pose)} photo" loading="lazy">
-          <div class="photo-meta">
-            <div class="photo-pose">${escHtml(p.pose)}</div>
-            <div class="photo-date">${formatDate(p.taken_at)}</div>
-            ${p.weight_kg ? `<div class="photo-weight">${p.weight_kg}kg</div>` : ''}
-          </div>
-        </div>`).join('');
-
-      document.getElementById('gallery-wrap').innerHTML = `<div class="photo-grid">${grid}</div>`;
-
-      // Store photos globally for lightbox
+      // Store flat array for lightbox
       window._photos = photos;
+
+      // Group by date
+      const groups = {};
+      photos.forEach((p, i) => {
+        const key = p.taken_at ? p.taken_at.split('T')[0] : 'unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push({ ...p, _index: i });
+      });
+
+      const groupsHtml = Object.entries(groups)
+        .sort(([a], [b]) => b.localeCompare(a))
+        .map(([date, groupPhotos]) => {
+          const weight = groupPhotos.find(p => p.weight_kg)?.weight_kg;
+          const photosHtml = groupPhotos.map(p => `
+            <div class="photo-card" style="width:110px;flex-shrink:0" onclick="openLightbox(${p._index})">
+              <img class="photo-thumb" src="${escHtml(p.photo_url)}" alt="${escHtml(p.pose)}" loading="lazy">
+              <div class="photo-meta">
+                <div class="photo-pose">${escHtml(p.pose)}</div>
+              </div>
+            </div>`).join('');
+
+          return `<div class="photo-group">
+            <div class="photo-group-header">
+              <div class="photo-group-date">${formatDate(date)}</div>
+              ${weight ? `<div class="photo-group-weight">${weight}kg</div>` : ''}
+            </div>
+            <div class="photo-group-row">${photosHtml}</div>
+          </div>`;
+        }).join('');
+
+      document.getElementById('gallery-wrap').innerHTML = groupsHtml;
     }
 
     // ---- Upload modal ----

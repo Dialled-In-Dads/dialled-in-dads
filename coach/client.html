@@ -527,6 +527,24 @@
     .coach-photo-date { font-size: 11px; color: var(--muted); margin-top: 1px; }
     .coach-photo-weight { font-size: 11px; font-weight: 600; color: var(--text); }
 
+    /* Photo date groups */
+    .photo-group { margin-bottom: 16px; }
+    .photo-group-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .photo-group-date {
+      font-family: 'Anton', sans-serif; font-size: 13px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .photo-group-weight {
+      background: rgba(193,88,26,0.12); border: 1px solid rgba(193,88,26,0.25);
+      border-radius: 20px; padding: 2px 10px;
+      font-size: 11px; font-weight: 600; color: var(--orange);
+    }
+    .photo-group-count { font-size: 11px; color: var(--subtle); margin-left: auto; }
+    .photo-group-row { display: flex; gap: 8px; }
+
     /* Coach lightbox */
     .coach-lightbox {
       position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 500;
@@ -1353,18 +1371,38 @@
         return;
       }
 
-      const grid = clientPhotos.map((p, i) => `
-        <div class="coach-photo-card" onclick="openCoachLightbox(${i})">
-          ${unviewed.includes(p.id) ? '<div class="new-badge">New</div>' : ''}
-          <img class="coach-photo-thumb" src="${esc(p.photo_url)}" alt="${esc(p.pose)}" loading="lazy">
-          <div class="coach-photo-meta">
-            <div class="coach-photo-pose">${esc(p.pose)}</div>
-            <div class="coach-photo-date">${formatDateShort(p.taken_at)}</div>
-            ${p.weight_kg ? `<div class="coach-photo-weight">${p.weight_kg}kg</div>` : ''}
-          </div>
-        </div>`).join('');
+      // Group photos by date
+      const groups = {};
+      clientPhotos.forEach((p, i) => {
+        const key = p.taken_at ? p.taken_at.split('T')[0] : 'unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push({ ...p, _index: i });
+      });
 
-      wrap.innerHTML = `<div class="photo-grid-coach">${grid}</div>`;
+      const groupsHtml = Object.entries(groups)
+        .sort(([a], [b]) => b.localeCompare(a)) // newest first
+        .map(([date, photos]) => {
+          const weight = photos.find(p => p.weight_kg)?.weight_kg;
+          const photosHtml = photos.map(p => `
+            <div class="coach-photo-card" style="width:120px;flex-shrink:0" onclick="openCoachLightbox(${p._index})">
+              ${unviewed.includes(p.id) ? '<div class="new-badge">New</div>' : ''}
+              <img class="coach-photo-thumb" src="${esc(p.photo_url)}" alt="${esc(p.pose)}" loading="lazy">
+              <div class="coach-photo-meta">
+                <div class="coach-photo-pose">${esc(p.pose)}</div>
+              </div>
+            </div>`).join('');
+
+          return `<div class="photo-group">
+            <div class="photo-group-header">
+              <div class="photo-group-date">${formatDate(date)}</div>
+              ${weight ? `<div class="photo-group-weight">${weight}kg</div>` : ''}
+              <div class="photo-group-count">${photos.length} photo${photos.length > 1 ? 's' : ''}</div>
+            </div>
+            <div class="photo-group-row">${photosHtml}</div>
+          </div>`;
+        }).join('');
+
+      wrap.innerHTML = groupsHtml;
     }
 
     // ---- Coach Lightbox ----
