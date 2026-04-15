@@ -1243,12 +1243,25 @@
         });
       });
 
-      // Session cards (newest first, collapsed by default)
-      const sessionsHtml = workoutSessions.map((session, i) => {
-        const day     = session.programme_days;
-        const label   = day?.label || 'Workout';
-        const sets    = session.set_logs || [];
-        const date    = formatDate(session.log_date);
+      // Merge all workout_logs by date into one card per day
+      const byDate = {};
+      workoutSessions.forEach(session => {
+        const date = session.log_date;
+        if (!byDate[date]) {
+          byDate[date] = {
+            date,
+            label: session.programme_days?.label || 'Workout',
+            sets: [],
+          };
+        }
+        byDate[date].sets.push(...(session.set_logs || []));
+      });
+
+      const mergedSessions = Object.values(byDate)
+        .sort((a, b) => b.date.localeCompare(a.date));
+
+      const sessionsHtml = mergedSessions.map((session, i) => {
+        const sets = session.sets;
 
         // Group sets by exercise
         const byExercise = {};
@@ -1258,7 +1271,6 @@
           byExercise[name].push(sl);
         });
 
-        // Find PBs (highest e1rm for this exercise across all sessions before this one)
         const exercisesHtml = Object.entries(byExercise).map(([name, exSets]) => {
           const sortedSets = [...exSets].sort((a,b) => a.set_number - b.set_number);
           const allE1rms   = (e1rmHistory[name] || []).map(x => x.e1rm);
@@ -1277,9 +1289,7 @@
           return `<div class="ex-block">
             <div class="ex-name">${esc(name)}</div>
             <table class="sets-table">
-              <thead><tr>
-                <th>Set</th><th>Weight</th><th>Reps</th><th>e1RM</th>
-              </tr></thead>
+              <thead><tr><th>Set</th><th>Weight</th><th>Reps</th><th>e1RM</th></tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>`;
@@ -1291,8 +1301,8 @@
         return `<div class="session-card">
           <div class="session-header" onclick="toggleSession(${i})">
             <div>
-              <div class="session-date">${date}</div>
-              <div class="session-label">${esc(label)}</div>
+              <div class="session-date">${formatDate(session.date)}</div>
+              <div class="session-label">${esc(session.label)}</div>
               <div class="session-meta">${totalSets} sets · ${Math.round(totalVol).toLocaleString()}kg volume</div>
             </div>
             <div class="session-chevron" id="chev-${i}">›</div>
