@@ -425,6 +425,49 @@
 
     .no-data { padding: 20px; text-align: center; color: var(--subtle); font-size: 13px; }
 
+    /* ---- Workout History ---- */
+    .session-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; margin-bottom: 10px; overflow: hidden;
+    }
+    .session-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .session-header:hover { background: rgba(255,255,255,0.03); }
+    .session-date { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+    .session-label { font-size: 14px; font-weight: 600; }
+    .session-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .session-chevron { color: var(--subtle); font-size: 14px; transition: transform 0.2s; }
+    .session-chevron.open { transform: rotate(90deg); }
+    .session-body { padding: 0 16px 14px; display: none; }
+    .session-body.open { display: block; }
+
+    .ex-block { margin-bottom: 14px; }
+    .ex-name { font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--orange); margin-bottom: 6px; }
+    .sets-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .sets-table th { color: var(--muted); font-weight: 500; text-align: left;
+      padding: 3px 6px 6px 0; border-bottom: 1px solid var(--border); }
+    .sets-table td { padding: 5px 6px 5px 0; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .sets-table tr:last-child td { border-bottom: none; }
+    .e1rm-cell { color: var(--muted); }
+    .pb-badge {
+      display: inline-block; background: rgba(193,88,26,0.15);
+      border: 1px solid rgba(193,88,26,0.3); border-radius: 4px;
+      font-size: 9px; font-weight: 700; color: var(--orange);
+      padding: 1px 4px; margin-left: 4px; vertical-align: middle;
+    }
+
+    /* Progression chart per exercise */
+    .prog-section { margin-top: 16px; }
+    .prog-title { font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--muted); margin-bottom: 10px; }
+    .prog-exercise { margin-bottom: 14px; }
+    .prog-ex-name { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .prog-chart-wrap { height: 60px; }
+
     /* ---- Photos section ---- */
     .photos-section {
       margin-top: 0;
@@ -620,6 +663,7 @@
     let checkins = [];
     let programmes = [];
     let clientPhotos = [];
+    let workoutSessions = [];
 
     const STORAGE_URL = 'https://oboeavvjrtuzeovrjsht.supabase.co/storage/v1/object/public/progress-photos';
 
@@ -647,7 +691,7 @@
       clientData = client;
 
       // Parallel fetches
-      const [checkinsRes, progsRes, photosRes] = await Promise.all([
+      const [checkinsRes, progsRes, photosRes, workoutsRes] = await Promise.all([
         db.from('check_ins')
           .select('*')
           .eq('client_id', clientId)
@@ -661,11 +705,17 @@
           .select('*')
           .eq('client_id', clientId)
           .order('taken_at', { ascending: false }),
+        db.from('workout_logs')
+          .select(`*, programme_days(label, day_number, week_number), set_logs(*, block_exercises(exercise_name))`)
+          .eq('client_id', clientId)
+          .order('log_date', { ascending: false })
+          .limit(30),
       ]);
 
-      checkins      = checkinsRes.data || [];
-      programmes    = progsRes.data    || [];
-      clientPhotos  = photosRes.data   || [];
+      checkins         = checkinsRes.data  || [];
+      programmes       = progsRes.data     || [];
+      clientPhotos     = photosRes.data    || [];
+      workoutSessions  = workoutsRes.data  || [];
 
       renderPage();
     })();
@@ -883,6 +933,19 @@
           </div>
         </div>
 
+        <!-- Workout History section -->
+        <div class="photos-section">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Workout History</div>
+              <span style="font-size:12px;color:var(--muted)" id="workout-session-count"></span>
+            </div>
+            <div class="card-body" id="workout-history-wrap">
+              <div class="no-data">Loading…</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Progress Photos section -->
         <div class="photos-section">
           <div class="card">
@@ -899,6 +962,7 @@
 
       renderCheckinHistory();
       renderWeightChart();
+      renderWorkoutHistory();
       renderPhotosSection();
     }
 
@@ -1090,6 +1154,145 @@
       } else {
         console.error(error);
       }
+    }
+
+    // ---- Render Workout History ----
+    function renderWorkoutHistory() {
+      const wrap = document.getElementById('workout-history-wrap');
+      if (!wrap) return;
+
+      if (!workoutSessions.length) {
+        wrap.innerHTML = '<div class="no-data">No workouts logged yet.</div>';
+        return;
+      }
+
+      document.getElementById('workout-session-count').textContent =
+        `${workoutSessions.length} session${workoutSessions.length !== 1 ? 's' : ''}`;
+
+      // Build e1RM progression per exercise across all sessions
+      const e1rmHistory = {}; // { exerciseName: [{date, e1rm}] }
+      workoutSessions.forEach(session => {
+        (session.set_logs || []).forEach(sl => {
+          const name = sl.block_exercises?.exercise_name;
+          if (!name || !sl.e1rm) return;
+          if (!e1rmHistory[name]) e1rmHistory[name] = [];
+          // Only keep best e1rm per exercise per session
+          const existing = e1rmHistory[name].find(x => x.date === session.log_date);
+          if (!existing) {
+            e1rmHistory[name].push({ date: session.log_date, e1rm: sl.e1rm });
+          } else if (sl.e1rm > existing.e1rm) {
+            existing.e1rm = sl.e1rm;
+          }
+        });
+      });
+
+      // Session cards (newest first, collapsed by default)
+      const sessionsHtml = workoutSessions.map((session, i) => {
+        const day     = session.programme_days;
+        const label   = day?.label || 'Workout';
+        const sets    = session.set_logs || [];
+        const date    = formatDate(session.log_date);
+
+        // Group sets by exercise
+        const byExercise = {};
+        sets.forEach(sl => {
+          const name = sl.block_exercises?.exercise_name || 'Unknown';
+          if (!byExercise[name]) byExercise[name] = [];
+          byExercise[name].push(sl);
+        });
+
+        // Find PBs (highest e1rm for this exercise across all sessions before this one)
+        const exercisesHtml = Object.entries(byExercise).map(([name, exSets]) => {
+          const sortedSets = [...exSets].sort((a,b) => a.set_number - b.set_number);
+          const allE1rms   = (e1rmHistory[name] || []).map(x => x.e1rm);
+          const maxE1rm    = Math.max(...allE1rms);
+
+          const rows = sortedSets.map(sl => {
+            const isPb = sl.e1rm && sl.e1rm >= maxE1rm && allE1rms.length > 1;
+            return `<tr>
+              <td>Set ${sl.set_number}</td>
+              <td><strong>${sl.weight_kg}kg</strong></td>
+              <td>${sl.reps_completed} reps</td>
+              <td class="e1rm-cell">${sl.e1rm ? sl.e1rm + 'kg' : '—'}${isPb ? '<span class="pb-badge">PB</span>' : ''}</td>
+            </tr>`;
+          }).join('');
+
+          return `<div class="ex-block">
+            <div class="ex-name">${esc(name)}</div>
+            <table class="sets-table">
+              <thead><tr>
+                <th>Set</th><th>Weight</th><th>Reps</th><th>e1RM</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`;
+        }).join('');
+
+        const totalSets = sets.length;
+        const totalVol  = sets.reduce((s, sl) => s + (sl.weight_kg * sl.reps_completed || 0), 0);
+
+        return `<div class="session-card">
+          <div class="session-header" onclick="toggleSession(${i})">
+            <div>
+              <div class="session-date">${date}</div>
+              <div class="session-label">${esc(label)}</div>
+              <div class="session-meta">${totalSets} sets · ${Math.round(totalVol).toLocaleString()}kg volume</div>
+            </div>
+            <div class="session-chevron" id="chev-${i}">›</div>
+          </div>
+          <div class="session-body" id="session-body-${i}">
+            ${exercisesHtml || '<div style="color:var(--subtle);font-size:13px">No sets logged.</div>'}
+          </div>
+        </div>`;
+      }).join('');
+
+      // Progression section — exercises with 3+ data points
+      const progExercises = Object.entries(e1rmHistory)
+        .filter(([, data]) => data.length >= 3)
+        .sort((a, b) => b[1].length - a[1].length)
+        .slice(0, 5);
+
+      let progHtml = '';
+      if (progExercises.length) {
+        const charts = progExercises.map(([name, data]) => {
+          const sorted = [...data].sort((a,b) => a.date.localeCompare(b.date));
+          const vals   = sorted.map(d => d.e1rm);
+          const min    = Math.min(...vals);
+          const max    = Math.max(...vals);
+          const range  = max - min || 1;
+          const W = 280, H = 50, P = 6;
+          const pts = vals.map((v, i) => {
+            const x = P + (i / (vals.length - 1)) * (W - P * 2);
+            const y = H - P - ((v - min) / range) * (H - P * 2);
+            return `${x},${y}`;
+          });
+          const trend   = vals[vals.length - 1] > vals[0] ? 'var(--green)' : vals[vals.length - 1] < vals[0] ? '#e74c3c' : 'var(--muted)';
+          const lastPt  = pts[pts.length - 1].split(',');
+          return `<div class="prog-exercise">
+            <div class="prog-ex-name">${esc(name)} <span style="font-size:11px;color:var(--muted);font-weight:400">— best e1RM: ${Math.max(...vals)}kg</span></div>
+            <div class="prog-chart-wrap">
+              <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">
+                <polyline points="${pts.join(' ')}" fill="none" stroke="${trend}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="${trend}"/>
+              </svg>
+            </div>
+          </div>`;
+        }).join('');
+
+        progHtml = `<div class="prog-section">
+          <div class="prog-title">Strength Progression (e1RM)</div>
+          ${charts}
+        </div>`;
+      }
+
+      wrap.innerHTML = progHtml + sessionsHtml;
+    }
+
+    function toggleSession(i) {
+      const body = document.getElementById(`session-body-${i}`);
+      const chev = document.getElementById(`chev-${i}`);
+      body.classList.toggle('open');
+      chev.classList.toggle('open');
     }
 
     // ---- Render Photos Section ----
