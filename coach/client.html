@@ -691,7 +691,7 @@
       clientData = client;
 
       // Parallel fetches
-      const [checkinsRes, progsRes, photosRes, workoutsRes] = await Promise.all([
+      const [checkinsRes, progsRes, photosRes] = await Promise.all([
         db.from('check_ins')
           .select('*')
           .eq('client_id', clientId)
@@ -705,17 +705,56 @@
           .select('*')
           .eq('client_id', clientId)
           .order('taken_at', { ascending: false }),
-        db.from('workout_logs')
-          .select(`*, programme_days(label, day_number, week_number), set_logs(*, block_exercises(exercise_name))`)
-          .eq('client_id', clientId)
-          .order('log_date', { ascending: false })
-          .limit(30),
       ]);
 
-      checkins         = checkinsRes.data  || [];
-      programmes       = progsRes.data     || [];
-      clientPhotos     = photosRes.data    || [];
-      workoutSessions  = workoutsRes.data  || [];
+      checkins      = checkinsRes.data || [];
+      programmes    = progsRes.data    || [];
+      clientPhotos  = photosRes.data   || [];
+
+      // ---- Workout history: flat queries then join in JS ----
+      const { data: rawLogs } = await db
+        .from('workout_logs')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('log_date', { ascending: false })
+        .limit(30);
+
+      if (rawLogs && rawLogs.length) {
+        const logIds  = rawLogs.map(l => l.id);
+        const dayIds  = [...new Set(rawLogs.map(l => l.programme_day_id).filter(Boolean))];
+
+        const [setsRes, daysRes] = await Promise.all([
+          db.from('set_logs').select('*').in('workout_log_id', logIds),
+          db.from('programme_days').select('id, label, day_number, week_number').in('id', dayIds),
+        ]);
+
+        const sets = setsRes.data || [];
+        const days = daysRes.data || [];
+
+        // Get exercise names
+        const exIds = [...new Set(sets.map(s => s.block_exercise_id).filter(Boolean))];
+        let exercises = [];
+        if (exIds.length) {
+          const { data: exData } = await db
+            .from('block_exercises')
+            .select('id, exercise_name')
+            .in('id', exIds);
+          exercises = exData || [];
+        }
+
+        // Build lookup maps
+        const daysMap = Object.fromEntries(days.map(d => [d.id, d]));
+        const exMap   = Object.fromEntries(exercises.map(e => [e.id, e]));
+
+        // Attach sets + exercise names + day info to each log
+        workoutSessions = rawLogs.map(log => ({
+          ...log,
+          programme_days: daysMap[log.programme_day_id] || null,
+          set_logs: sets
+            .filter(s => s.workout_log_id === log.id)
+            .map(s => ({ ...s, block_exercises: exMap[s.block_exercise_id] || null })),
+        }));
+      }
 
       renderPage();
     })();
