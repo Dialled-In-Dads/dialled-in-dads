@@ -689,7 +689,7 @@
         : null;
 
       // Weight chart + goal progress
-      const chartData     = checkIns.filter(c => c.weight_kg).slice(0, 14).reverse();
+      const chartData     = checkIns.filter(c => c.weight_kg).slice(0, 30).reverse();
       const targetWeight  = client.goal_weight || null;
       const currentWeight = latest?.weight_kg || null;
 
@@ -796,16 +796,7 @@
 
       // ---- Weight trend ----
       if (chartData.length >= 2) {
-        const trending  = isGoodTrend(chartData, targetWeight);
-        const lineColor = trending ? 'var(--green)' : 'var(--subtle)';
-        html += `
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Weight Trend</div>
-              ${targetWeight ? `<div style="font-size:12px;color:var(--muted)">Target: <strong style="color:var(--green)">${targetWeight}kg</strong></div>` : ''}
-            </div>
-            <div class="chart-wrap">${buildChart(chartData, targetWeight, lineColor)}</div>
-          </div>`;
+        html += buildRichChart(chartData, targetWeight);
       }
 
       // ---- Goal progress ----
@@ -929,40 +920,138 @@
       return mon.toISOString().split('T')[0];
     }
 
-    function isGoodTrend(data, target) {
-      if (data.length < 2) return true;
-      const first = data[0].weight_kg;
-      const last  = data[data.length - 1].weight_kg;
-      if (!target) return last <= first;
-      return target < first ? last < first : last > first;
+    function buildRichChart(data, targetWeight) {
+      if (data.length < 2) return '';
+      const weights   = data.map(d => d.weight_kg);
+      const maxWeight = Math.max(...weights);
+      const minWeight = Math.min(...weights);
+      const maxEntry  = data.reduce((a, b) => a.weight_kg >= b.weight_kg ? a : b);
+      const latest    = data[data.length - 1];
+      const first     = data[0];
+
+      const trendPerWeek = calcTrendPerWeek(data);
+      const trendSign    = trendPerWeek > 0 ? '+' : '';
+      const trendGood    = targetWeight
+        ? (targetWeight < first.weight_kg ? trendPerWeek <= 0 : trendPerWeek >= 0)
+        : trendPerWeek <= 0;
+      const trendColor   = trendGood ? 'var(--green)' : 'var(--orange)';
+      const totalChange  = (latest.weight_kg - first.weight_kg).toFixed(1);
+      const totalSign    = totalChange > 0 ? '+' : '';
+
+      const weekAgo  = new Date(Date.now() - 7 * 864e5).toISOString().split('T')[0];
+      const weekData = data.filter(d => d.check_in_date >= weekAgo);
+      const weekHigh = weekData.length ? Math.max(...weekData.map(d => d.weight_kg)) : null;
+      const weekLow  = weekData.length ? Math.min(...weekData.map(d => d.weight_kg)) : null;
+
+      // SVG layout
+      const W = 320, H = 130;
+      const ML = 34, MR = 10, MT = 14, MB = 6;
+      const cW = W - ML - MR, cH = H - MT - MB;
+
+      let yMin = minWeight, yMax = maxWeight;
+      if (targetWeight) { yMin = Math.min(yMin, targetWeight); yMax = Math.max(yMax, targetWeight); }
+      const yPad = (yMax - yMin) * 0.2 || 0.5;
+      yMin -= yPad; yMax += yPad;
+      const yRng = yMax - yMin;
+
+      const toY = w => MT + cH - ((w - yMin) / yRng) * cH;
+      const toX = i => ML + (data.length > 1 ? (i / (data.length - 1)) * cW : cW / 2);
+      const pts = data.map((d, i) => [toX(i), toY(d.weight_kg)]);
+
+      // Grid
+      let gridSvg = '';
+      for (let i = 0; i <= 4; i++) {
+        const w = yMin + (i / 4) * yRng;
+        const y = toY(w);
+        if (y < MT - 2 || y > MT + cH + 2) continue;
+        gridSvg += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${W-MR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
+        gridSvg += `<text x="${ML-4}" y="${(y+3).toFixed(1)}" font-family="DM Sans,sans-serif" font-size="8.5" fill="rgba(136,146,164,0.55)" text-anchor="end">${w.toFixed(1)}</text>`;
+      }
+
+      // Goal line
+      let goalSvg = '';
+      if (targetWeight) {
+        const gy = toY(targetWeight);
+        goalSvg  = `<line x1="${ML}" y1="${gy.toFixed(1)}" x2="${W-MR}" y2="${gy.toFixed(1)}" stroke="rgba(46,204,138,0.5)" stroke-width="1" stroke-dasharray="4 3"/>`;
+        goalSvg += `<text x="${W-MR-2}" y="${(gy-3).toFixed(1)}" font-family="DM Sans,sans-serif" font-size="8" fill="rgba(46,204,138,0.7)" text-anchor="end">Goal</text>`;
+      }
+
+      const linePath = catmullRomPath(pts);
+      const fillPath = linePath + ` L ${pts[pts.length-1][0].toFixed(1)},${(MT+cH).toFixed(1)} L ${pts[0][0].toFixed(1)},${(MT+cH).toFixed(1)} Z`;
+
+      const dotsSvg = pts.map((p, i) => {
+        const last = i === pts.length - 1;
+        return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${last?3.5:2}" fill="${last?'#2ECC8A':'rgba(46,204,138,0.5)'}" ${last?'stroke="var(--bg)" stroke-width="1.5"':''}/>`;
+      }).join('');
+
+      const lp  = pts[pts.length - 1];
+      const lty = lp[1] < MT + 16 ? lp[1] + 14 : lp[1] - 8;
+      const labelSvg = `<text x="${lp[0].toFixed(1)}" y="${lty.toFixed(1)}" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#2ECC8A" text-anchor="middle">${latest.weight_kg}kg</text>`;
+
+      const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
+        <defs><linearGradient id="wgrd" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2ECC8A" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="#2ECC8A" stop-opacity="0.01"/>
+        </linearGradient></defs>
+        ${gridSvg}${goalSvg}
+        <path d="${fillPath}" fill="url(#wgrd)"/>
+        <path d="${linePath}" fill="none" stroke="#2ECC8A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        ${dotsSvg}${labelSvg}
+      </svg>`;
+
+      return `<div class="card">
+        <div class="card-header" style="margin-bottom:14px">
+          <div class="card-title">Weight Trend</div>
+          ${targetWeight ? `<div style="font-size:11px;color:var(--muted)">Goal: <strong style="color:var(--green)">${targetWeight}kg</strong></div>` : ''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:600;color:var(--subtle);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px">High</div>
+            <div style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.5px;color:var(--text);line-height:1.1">${maxWeight}kg</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">${fmtDate(maxEntry.check_in_date)}</div>
+          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:600;color:var(--subtle);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px">Trend</div>
+            <div style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.5px;color:${trendColor};line-height:1.1">${trendSign}${Math.abs(trendPerWeek).toFixed(2)}kg</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">per week · ${totalSign}${totalChange}kg total</div>
+          </div>
+        </div>
+        ${weekHigh !== null ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <div>
+            <div style="font-size:9px;font-weight:600;color:var(--subtle);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px">Week High</div>
+            <div style="font-size:15px;font-weight:600;color:var(--text)">${weekHigh}kg</div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:600;color:var(--subtle);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px">Week Low</div>
+            <div style="font-size:15px;font-weight:600;color:var(--green)">${weekLow !== null ? weekLow+'kg' : '—'}</div>
+          </div>
+        </div>` : ''}
+        <div style="margin:0 -4px">${svg}</div>
+      </div>`;
     }
 
-    function buildChart(data, target, lineColor) {
-      if (data.length < 2) return '';
-      const W = 320, H = 80, PAD = 8;
-      const weights = data.map(d => d.weight_kg);
-      let min = Math.min(...weights);
-      let max = Math.max(...weights);
-      if (target) { min = Math.min(min, target); max = Math.max(max, target); }
-      const range = max - min || 1;
-      const xStep = (W - PAD * 2) / (data.length - 1);
-      const pts   = data.map((d, i) => {
-        const x = PAD + i * xStep;
-        const y = H - PAD - ((d.weight_kg - min) / range) * (H - PAD * 2);
-        return `${x},${y}`;
-      });
-      let targetLine = '';
-      if (target) {
-        const ty = H - PAD - ((target - min) / range) * (H - PAD * 2);
-        targetLine = `<line x1="${PAD}" y1="${ty}" x2="${W-PAD}" y2="${ty}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity="0.4"/>`;
+    function catmullRomPath(pts) {
+      if (pts.length < 2) return '';
+      let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[Math.max(0, i-2)], p1 = pts[i-1], p2 = pts[i], p3 = pts[Math.min(pts.length-1, i+1)];
+        const cp1x = p1[0] + (p2[0]-p0[0])/6, cp1y = p1[1] + (p2[1]-p0[1])/6;
+        const cp2x = p2[0] - (p3[0]-p1[0])/6, cp2y = p2[1] - (p3[1]-p1[1])/6;
+        d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
       }
-      const lastPt = pts[pts.length - 1].split(',');
-      return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-        ${targetLine}
-        <polyline points="${pts.join(' ')}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="${lineColor}"/>
-        <text x="${lastPt[0]}" y="${parseFloat(lastPt[1]) - 6}" font-family="DM Sans,sans-serif" font-size="10" fill="${lineColor}" text-anchor="middle">${data[data.length-1].weight_kg}kg</text>
-      </svg>`;
+      return d;
+    }
+
+    function calcTrendPerWeek(data) {
+      if (data.length < 2) return 0;
+      const t0  = new Date(data[0].check_in_date + 'T00:00:00').getTime();
+      const xs  = data.map(d => (new Date(d.check_in_date + 'T00:00:00').getTime() - t0) / 86400000);
+      const ys  = data.map(d => d.weight_kg);
+      const n   = xs.length;
+      const sx  = xs.reduce((a,b)=>a+b,0), sy = ys.reduce((a,b)=>a+b,0);
+      const sxy = xs.reduce((a,x,i)=>a+x*ys[i],0), sx2 = xs.reduce((a,x)=>a+x*x,0);
+      const den = n*sx2 - sx*sx;
+      return den ? ((n*sxy - sx*sy) / den) * 7 : 0;
     }
 
     function escHtml(s) {

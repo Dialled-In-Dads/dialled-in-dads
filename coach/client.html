@@ -261,7 +261,7 @@
 
     /* ---- Weight Chart ---- */
     .chart-wrap {
-      height: 160px;
+      min-height: 130px;
       position: relative;
     }
 
@@ -1056,49 +1056,107 @@
       const withWeight = checkins.filter(c => c.weight_kg != null).slice(0, 30).reverse();
       if (withWeight.length < 2) return;
 
-      const wrap = document.getElementById('chart-wrap');
-      const W = wrap.clientWidth || 600;
-      const H = 140;
-      const pad = { t: 10, r: 10, b: 30, l: 40 };
-      const iW = W - pad.l - pad.r;
-      const iH = H - pad.t - pad.b;
+      const wrap       = document.getElementById('chart-wrap');
+      const targetWeight = clientData.goal_weight || null;
+      const weights    = withWeight.map(c => c.weight_kg);
+      const maxWeight  = Math.max(...weights);
+      const minWeight  = Math.min(...weights);
+      const maxEntry   = withWeight.reduce((a, b) => a.weight_kg >= b.weight_kg ? a : b);
+      const latest     = withWeight[withWeight.length - 1];
+      const first      = withWeight[0];
 
-      const weights = withWeight.map(c => c.weight_kg);
-      const minW = Math.min(...weights) - 1;
-      const maxW = Math.max(...weights) + 1;
+      const trendPerWeek = calcTrendPerWeek(withWeight);
+      const trendSign    = trendPerWeek > 0 ? '+' : '';
+      const trendGood    = targetWeight
+        ? (targetWeight < first.weight_kg ? trendPerWeek <= 0 : trendPerWeek >= 0)
+        : trendPerWeek <= 0;
+      const trendColor   = trendGood ? '#2ECC8A' : '#C1581A';
+      const totalChange  = (latest.weight_kg - first.weight_kg).toFixed(1);
+      const totalSign    = totalChange > 0 ? '+' : '';
 
-      const xScale = i => pad.l + (i / (withWeight.length - 1)) * iW;
-      const yScale = w => pad.t + iH - ((w - minW) / (maxW - minW)) * iH;
+      const weekAgo  = new Date(Date.now() - 7 * 864e5).toISOString().split('T')[0];
+      const weekData = withWeight.filter(d => d.check_in_date >= weekAgo);
+      const weekHigh = weekData.length ? Math.max(...weekData.map(d => d.weight_kg)) : null;
+      const weekLow  = weekData.length ? Math.min(...weekData.map(d => d.weight_kg)) : null;
 
-      const points = withWeight.map((c, i) => [xScale(i), yScale(c.weight_kg)]);
-      const polyline = points.map(p => p.join(',')).join(' ');
+      // SVG
+      const W = 320, H = 130;
+      const ML = 34, MR = 10, MT = 14, MB = 6;
+      const cW = W - ML - MR, cH = H - MT - MB;
 
-      // Goal line
-      const goalW = clientData.goal_weight;
-      const goalLine = goalW != null && goalW >= minW && goalW <= maxW
-        ? `<line x1="${pad.l}" y1="${yScale(goalW)}" x2="${pad.l + iW}" y2="${yScale(goalW)}"
-             stroke="rgba(46,204,138,0.3)" stroke-width="1" stroke-dasharray="4,4"/>`
-        : '';
+      let yMin = minWeight, yMax = maxWeight;
+      if (targetWeight) { yMin = Math.min(yMin, targetWeight); yMax = Math.max(yMax, targetWeight); }
+      const yPad = (yMax - yMin) * 0.2 || 0.5;
+      yMin -= yPad; yMax += yPad;
+      const yRng = yMax - yMin;
 
-      // Y axis labels
-      const yLabels = [minW + 1, (minW + maxW) / 2, maxW - 1].map(v =>
-        `<text x="${pad.l - 6}" y="${yScale(v) + 4}" fill="#4A5568" font-size="11" text-anchor="end">${v.toFixed(1)}</text>`
-      ).join('');
+      const toY = w => MT + cH - ((w - yMin) / yRng) * cH;
+      const toX = i => ML + (withWeight.length > 1 ? (i / (withWeight.length - 1)) * cW : cW / 2);
+      const pts = withWeight.map((d, i) => [toX(i), toY(d.weight_kg)]);
 
-      // X axis labels (first, middle, last)
-      const xLabels = [0, Math.floor(withWeight.length / 2), withWeight.length - 1].map(i =>
-        `<text x="${xScale(i)}" y="${H - 4}" fill="#4A5568" font-size="11" text-anchor="middle">${formatDateShort(withWeight[i].check_in_date)}</text>`
-      ).join('');
+      let gridSvg = '';
+      for (let i = 0; i <= 4; i++) {
+        const w = yMin + (i / 4) * yRng;
+        const y = toY(w);
+        if (y < MT - 2 || y > MT + cH + 2) continue;
+        gridSvg += `<line x1="${ML}" y1="${y.toFixed(1)}" x2="${W-MR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
+        gridSvg += `<text x="${ML-4}" y="${(y+3).toFixed(1)}" font-family="DM Sans,sans-serif" font-size="8.5" fill="rgba(136,146,164,0.55)" text-anchor="end">${w.toFixed(1)}</text>`;
+      }
+
+      let goalSvg = '';
+      if (targetWeight) {
+        const gy = toY(targetWeight);
+        goalSvg  = `<line x1="${ML}" y1="${gy.toFixed(1)}" x2="${W-MR}" y2="${gy.toFixed(1)}" stroke="rgba(46,204,138,0.5)" stroke-width="1" stroke-dasharray="4 3"/>`;
+        goalSvg += `<text x="${W-MR-2}" y="${(gy-3).toFixed(1)}" font-family="DM Sans,sans-serif" font-size="8" fill="rgba(46,204,138,0.7)" text-anchor="end">Goal</text>`;
+      }
+
+      const linePath = catmullRomPath(pts);
+      const fillPath = linePath + ` L ${pts[pts.length-1][0].toFixed(1)},${(MT+cH).toFixed(1)} L ${pts[0][0].toFixed(1)},${(MT+cH).toFixed(1)} Z`;
+      const dotsSvg  = pts.map((p, i) => {
+        const last = i === pts.length - 1;
+        return `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${last?3.5:2}" fill="${last?'#2ECC8A':'rgba(46,204,138,0.5)'}" ${last?'stroke="#0D1117" stroke-width="1.5"':''}/>`;
+      }).join('');
+      const lp  = pts[pts.length - 1];
+      const lty = lp[1] < MT + 16 ? lp[1] + 14 : lp[1] - 8;
+      const labelSvg = `<text x="${lp[0].toFixed(1)}" y="${lty.toFixed(1)}" font-family="DM Sans,sans-serif" font-size="10" font-weight="600" fill="#2ECC8A" text-anchor="middle">${latest.weight_kg}kg</text>`;
+
+      const fmtD = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
       wrap.innerHTML = `
-        <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-          ${goalLine}
-          <polyline points="${polyline}" fill="none" stroke="#2ECC8A" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-          ${points.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#2ECC8A"/>`).join('')}
-          ${yLabels}
-          ${xLabels}
-        </svg>
-      `;
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:#0D1117;border:1px solid #1E2A3E;border-radius:10px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:600;color:#4A5568;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px">High</div>
+            <div style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.5px;color:#F0F4F8;line-height:1.1">${maxWeight}kg</div>
+            <div style="font-size:11px;color:#8892A4;margin-top:3px">${fmtD(maxEntry.check_in_date)}</div>
+          </div>
+          <div style="background:#0D1117;border:1px solid #1E2A3E;border-radius:10px;padding:10px 12px">
+            <div style="font-size:9px;font-weight:600;color:#4A5568;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px">Trend</div>
+            <div style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.5px;color:${trendColor};line-height:1.1">${trendSign}${Math.abs(trendPerWeek).toFixed(2)}kg</div>
+            <div style="font-size:11px;color:#8892A4;margin-top:3px">per week · ${totalSign}${totalChange}kg total</div>
+          </div>
+        </div>
+        ${weekHigh !== null ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <div>
+            <div style="font-size:9px;font-weight:600;color:#4A5568;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px">Week High</div>
+            <div style="font-size:15px;font-weight:600;color:#F0F4F8">${weekHigh}kg</div>
+          </div>
+          <div>
+            <div style="font-size:9px;font-weight:600;color:#4A5568;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px">Week Low</div>
+            <div style="font-size:15px;font-weight:600;color:#2ECC8A">${weekLow !== null ? weekLow+'kg' : '—'}</div>
+          </div>
+        </div>` : ''}
+        <div style="margin:0 -4px">
+          <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
+            <defs><linearGradient id="cwgrd" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2ECC8A" stop-opacity="0.2"/>
+              <stop offset="100%" stop-color="#2ECC8A" stop-opacity="0.01"/>
+            </linearGradient></defs>
+            ${gridSvg}${goalSvg}
+            <path d="${fillPath}" fill="url(#cwgrd)"/>
+            <path d="${linePath}" fill="none" stroke="#2ECC8A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            ${dotsSvg}${labelSvg}
+          </svg>
+        </div>`;
     }
 
     // ---- Save Goals ----
@@ -1510,6 +1568,30 @@
     function formatDate(iso) {
       if (!iso) return '—';
       return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function catmullRomPath(pts) {
+      if (pts.length < 2) return '';
+      let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[Math.max(0,i-2)], p1 = pts[i-1], p2 = pts[i], p3 = pts[Math.min(pts.length-1,i+1)];
+        const cp1x = p1[0]+(p2[0]-p0[0])/6, cp1y = p1[1]+(p2[1]-p0[1])/6;
+        const cp2x = p2[0]-(p3[0]-p1[0])/6, cp2y = p2[1]-(p3[1]-p1[1])/6;
+        d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+      }
+      return d;
+    }
+
+    function calcTrendPerWeek(data) {
+      if (data.length < 2) return 0;
+      const t0  = new Date(data[0].check_in_date + 'T00:00:00').getTime();
+      const xs  = data.map(d => (new Date(d.check_in_date + 'T00:00:00').getTime() - t0) / 86400000);
+      const ys  = data.map(d => d.weight_kg);
+      const n   = xs.length;
+      const sx  = xs.reduce((a,b)=>a+b,0), sy = ys.reduce((a,b)=>a+b,0);
+      const sxy = xs.reduce((a,x,i)=>a+x*ys[i],0), sx2 = xs.reduce((a,x)=>a+x*x,0);
+      const den = n*sx2 - sx*sx;
+      return den ? ((n*sxy - sx*sy) / den) * 7 : 0;
     }
 
     function formatDateShort(dateStr) {
