@@ -671,29 +671,30 @@
           const tier = block.tier.toLowerCase();
           const bannerId = `banner-${block.id}`;
 
-          const isSuperset = block.block_type === 'superset';
+          const ssLabels  = getSupersetLabels(exs);
+          const hasSuperset = ssLabels.some(l => l !== null);
           html += `<div class="card block-section" id="block-${block.id}">
             <div class="block-header">
               <span class="tier-badge ${tier}">${block.tier}</span>
               <span class="block-desc">${tierDesc(tier)}</span>
-              ${isSuperset ? '<span class="superset-tag">Superset</span>' : ''}
+              ${hasSuperset ? '<span class="superset-tag">Superset</span>' : ''}
             </div>`;
 
           if (!exs.length) {
             html += `<p style="font-size:13px;color:var(--subtle)">No exercises in this block.</p>`;
           } else {
             exs.forEach((ex, exIdx) => {
-              const sets     = parseSets(ex.sets, ex.rep_scheme);
-              const target   = ex.target_weight_kg;
-              const prev     = prevSets[ex.id] || {};
-              const logged   = loggedSets[ex.id] || {};
-              const ssLabels = ['A1','A2','A3','A4','A5'];
+              const sets   = parseSets(ex.sets, ex.rep_scheme);
+              const target = ex.target_weight_kg;
+              const prev   = prevSets[ex.id] || {};
+              const logged = loggedSets[ex.id] || {};
+              const label  = ssLabels[exIdx];
 
               html += `<div class="exercise-card" id="ex-${ex.id}">
                 <div class="exercise-header">
                   <div>
                     <div class="exercise-name">
-                      ${isSuperset ? `<span class="ss-label">${ssLabels[exIdx] || (exIdx+1)}</span>` : ''}
+                      ${label ? `<span class="ss-label">${label}</span>` : ''}
                       ${esc(ex.exercise_name)}
                       ${ex.is_dropset ? '<span class="dropset-tag">↓ Drop</span>' : ''}
                     </div>
@@ -1035,6 +1036,23 @@
     }
 
     // ===== HELPERS =====
+    function getSupersetLabels(exs) {
+      const LETTERS = 'ABCDEFGHIJKLMNOP';
+      const labels = [];
+      let groupIdx = 0, inGroup = false, pos = 0;
+      for (let i = 0; i < exs.length; i++) {
+        if (inGroup) {
+          pos++;
+          labels.push(LETTERS[groupIdx] + pos);
+          if (!exs[i].paired_with_next) { inGroup = false; groupIdx++; pos = 0; }
+        } else {
+          if (exs[i].paired_with_next) { inGroup = true; pos = 1; labels.push(LETTERS[groupIdx] + '1'); }
+          else { labels.push(null); }
+        }
+      }
+      return labels;
+    }
+
     function tierDesc(tier) {
       if (tier === 'win')   return 'Key lift — non-negotiable';
       if (tier === 'bonus') return 'Supporting compound';

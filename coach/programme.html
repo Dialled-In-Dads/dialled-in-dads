@@ -855,23 +855,23 @@
     .btn-edit:hover { color: var(--blue); background: rgba(91,155,213,0.1); }
 
     /* ===== SUPERSET / DROPSET ===== */
-    .block-type-btn {
+    .btn-link {
       background: none;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 3px 9px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 10px;
-      font-weight: 600;
+      border-radius: 4px;
       color: var(--subtle);
       cursor: pointer;
+      font-size: 12px;
+      padding: 2px 6px;
+      line-height: 1;
       transition: all 0.15s;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-left: auto;
+      font-family: 'DM Sans', sans-serif;
     }
-    .block-type-btn:hover { border-color: var(--blue); color: var(--blue); }
-    .block-type-btn.is-superset { border-color: rgba(91,155,213,0.4); color: var(--blue); background: rgba(91,155,213,0.08); }
+    .btn-link:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-link.linked { border-color: rgba(91,155,213,0.4); color: var(--blue); background: rgba(91,155,213,0.08); }
+
+    tr.ss-row td { border-bottom-color: rgba(91,155,213,0.15); }
+    tr.ss-continues td { border-bottom: 1px dashed rgba(91,155,213,0.25) !important; }
 
     .ss-label {
       display: inline-block;
@@ -1319,14 +1319,15 @@
 
         if (sourceExs?.length) {
           await db.from('block_exercises').insert(sourceExs.map(ex => ({
-            block_id:         newBlock.id,
-            exercise_name:    ex.exercise_name,
-            muscle_group:     ex.muscle_group,
-            sets:             ex.sets,
-            rep_scheme:       ex.rep_scheme,
-            target_weight_kg: ex.target_weight_kg,
-            sort_order:       ex.sort_order,
-            is_dropset:       ex.is_dropset || false,
+            block_id:          newBlock.id,
+            exercise_name:     ex.exercise_name,
+            muscle_group:      ex.muscle_group,
+            sets:              ex.sets,
+            rep_scheme:        ex.rep_scheme,
+            target_weight_kg:  ex.target_weight_kg,
+            sort_order:        ex.sort_order,
+            is_dropset:        ex.is_dropset        || false,
+            paired_with_next:  ex.paired_with_next  || false,
           })));
         }
       }
@@ -1595,18 +1596,16 @@
         return;
       }
 
-      const SS_LABELS = ['A1','A2','A3','A4','A5'];
-
       const blocksHtml = blocks.map(b => {
-        const tier       = b.tier.toLowerCase();
-        const isSuperset = b.block_type === 'superset';
-        const exs        = exercises[b.id] || [];
+        const tier = b.tier.toLowerCase();
+        const exs  = exercises[b.id] || [];
+        const ssLabels = getSupersetLabels(exs);
 
         const exHtml = exs.length ? `
           <table class="exercise-table">
             <thead>
               <tr>
-                ${isSuperset ? '<th style="width:28px"></th>' : ''}
+                <th style="width:28px"></th>
                 <th>Exercise</th>
                 <th>Sets × Reps</th>
                 <th>Target</th>
@@ -1614,24 +1613,30 @@
               </tr>
             </thead>
             <tbody>
-              ${exs.map((ex, i) => `
-                <tr>
-                  ${isSuperset ? `<td><span class="ss-label">${SS_LABELS[i] || (i+1)}</span></td>` : ''}
-                  <td>
-                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-                      <div class="exercise-name">${esc(ex.exercise_name)}</div>
-                      ${ex.is_dropset ? '<span class="dropset-badge">↓ DS</span>' : ''}
-                    </div>
-                    ${ex.muscle_group ? `<div class="exercise-muscle">${esc(ex.muscle_group)}</div>` : ''}
-                  </td>
-                  <td><span class="exercise-scheme">${ex.sets ? ex.sets + ' × ' : ''}${esc(ex.rep_scheme || (ex.sets ? '' : '—'))}</span></td>
-                  <td><span class="exercise-weight">${ex.target_weight_kg ? ex.target_weight_kg + 'kg' : '—'}</span></td>
-                  <td style="display:flex;gap:2px;align-items:center">
-                    <button class="btn-edit" onclick="openEditExercise('${ex.id}','${b.id}')" title="Edit">✏️</button>
-                    <button class="btn-del"  onclick="deleteExercise('${ex.id}','${b.id}')" title="Delete">×</button>
-                  </td>
-                </tr>
-              `).join('')}
+              ${exs.map((ex, i) => {
+                const label    = ssLabels[i];
+                const isLast   = i === exs.length - 1;
+                const rowClass = label ? (ex.paired_with_next ? 'ss-row ss-continues' : 'ss-row') : '';
+                return `
+                  <tr class="${rowClass}">
+                    <td>${label ? `<span class="ss-label">${label}</span>` : ''}</td>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                        <div class="exercise-name">${esc(ex.exercise_name)}</div>
+                        ${ex.is_dropset ? '<span class="dropset-badge">↓ DS</span>' : ''}
+                      </div>
+                      ${ex.muscle_group ? `<div class="exercise-muscle">${esc(ex.muscle_group)}</div>` : ''}
+                    </td>
+                    <td><span class="exercise-scheme">${ex.sets ? ex.sets + ' × ' : ''}${esc(ex.rep_scheme || (ex.sets ? '' : '—'))}</span></td>
+                    <td><span class="exercise-weight">${ex.target_weight_kg ? ex.target_weight_kg + 'kg' : '—'}</span></td>
+                    <td style="display:flex;gap:2px;align-items:center">
+                      ${!isLast ? `<button class="btn-link ${ex.paired_with_next ? 'linked' : ''}" onclick="togglePairedWithNext('${ex.id}','${b.id}')" title="${ex.paired_with_next ? 'Unlink' : 'Superset with next'}">⇄</button>` : '<span style="display:inline-block;width:26px"></span>'}
+                      <button class="btn-edit" onclick="openEditExercise('${ex.id}','${b.id}')" title="Edit">✏️</button>
+                      <button class="btn-del"  onclick="deleteExercise('${ex.id}','${b.id}')" title="Delete">×</button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         ` : '<div style="font-size:12px;color:var(--subtle);margin-bottom:8px">No exercises yet.</div>';
@@ -1641,7 +1646,6 @@
             <div class="block-header">
               <span class="tier-badge ${tier}">${b.tier}</span>
               <span class="block-desc">${tier === 'win' ? 'Key compound lift — non-negotiable' : tier === 'bonus' ? 'Supporting compound' : 'Isolation / finishing touches'}</span>
-              <button class="block-type-btn ${isSuperset ? 'is-superset' : ''}" onclick="toggleBlockType('${b.id}')">${isSuperset ? '⇄ Superset' : '▸ Straight'}</button>
             </div>
             ${exHtml}
             <button class="btn-add" onclick="openExPicker('${b.id}')">+ Add Exercise</button>
@@ -1664,14 +1668,31 @@
       `;
     }
 
-    // ===== TOGGLE BLOCK TYPE =====
-    async function toggleBlockType(blockId) {
-      const block = blocks.find(b => b.id === blockId);
-      if (!block) return;
-      const newType = block.block_type === 'superset' ? 'straight' : 'superset';
-      const { error } = await db.from('workout_blocks').update({ block_type: newType }).eq('id', blockId);
+    // ===== SUPERSET HELPERS =====
+    function getSupersetLabels(exs) {
+      const LETTERS = 'ABCDEFGHIJKLMNOP';
+      const labels = [];
+      let groupIdx = 0, inGroup = false, pos = 0;
+      for (let i = 0; i < exs.length; i++) {
+        if (inGroup) {
+          pos++;
+          labels.push(LETTERS[groupIdx] + pos);
+          if (!exs[i].paired_with_next) { inGroup = false; groupIdx++; pos = 0; }
+        } else {
+          if (exs[i].paired_with_next) { inGroup = true; pos = 1; labels.push(LETTERS[groupIdx] + '1'); }
+          else { labels.push(null); }
+        }
+      }
+      return labels;
+    }
+
+    async function togglePairedWithNext(exId, blockId) {
+      const ex = (exercises[blockId] || []).find(e => e.id === exId);
+      if (!ex) return;
+      const newVal = !ex.paired_with_next;
+      const { error } = await db.from('block_exercises').update({ paired_with_next: newVal }).eq('id', exId);
       if (error) { alert(error.message); return; }
-      block.block_type = newType;
+      ex.paired_with_next = newVal;
       renderEditor();
     }
 
