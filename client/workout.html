@@ -120,6 +120,26 @@
     /* ---- Block section ---- */
     .block-section { margin-bottom: 20px; }
 
+    .superset-tag {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
+      color: var(--blue); background: rgba(91,155,213,0.12);
+      border: 1px solid rgba(91,155,213,0.25);
+      border-radius: 4px; padding: 2px 7px; text-transform: uppercase;
+    }
+
+    .ss-label {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      color: var(--blue); background: rgba(91,155,213,0.12);
+      border-radius: 4px; padding: 1px 5px; margin-right: 4px;
+    }
+
+    .dropset-tag {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      letter-spacing: 0.5px; color: var(--orange);
+      background: rgba(193,88,26,0.1); border: 1px solid rgba(193,88,26,0.2);
+      border-radius: 4px; padding: 1px 5px; margin-left: 6px;
+    }
+
     .block-header {
       display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
     }
@@ -639,25 +659,32 @@
           const tier = block.tier.toLowerCase();
           const bannerId = `banner-${block.id}`;
 
+          const isSuperset = block.block_type === 'superset';
           html += `<div class="card block-section" id="block-${block.id}">
             <div class="block-header">
               <span class="tier-badge ${tier}">${block.tier}</span>
               <span class="block-desc">${tierDesc(tier)}</span>
+              ${isSuperset ? '<span class="superset-tag">Superset</span>' : ''}
             </div>`;
 
           if (!exs.length) {
             html += `<p style="font-size:13px;color:var(--subtle)">No exercises in this block.</p>`;
           } else {
-            exs.forEach(ex => {
+            exs.forEach((ex, exIdx) => {
               const sets     = parseSets(ex.sets, ex.rep_scheme);
               const target   = ex.target_weight_kg;
               const prev     = prevSets[ex.id] || {};
               const logged   = loggedSets[ex.id] || {};
+              const ssLabels = ['A1','A2','A3','A4','A5'];
 
               html += `<div class="exercise-card" id="ex-${ex.id}">
                 <div class="exercise-header">
                   <div>
-                    <div class="exercise-name">${esc(ex.exercise_name)}</div>
+                    <div class="exercise-name">
+                      ${isSuperset ? `<span class="ss-label">${ssLabels[exIdx] || (exIdx+1)}</span>` : ''}
+                      ${esc(ex.exercise_name)}
+                      ${ex.is_dropset ? '<span class="dropset-tag">↓ Drop</span>' : ''}
+                    </div>
                     <div class="exercise-meta">${ex.rep_scheme || `${sets} sets`}${ex.muscle_group ? ' · ' + ex.muscle_group : ''}</div>
                   </div>
                   ${target ? `<div class="exercise-target">

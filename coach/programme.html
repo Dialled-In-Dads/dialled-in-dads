@@ -853,6 +853,69 @@
       line-height: 1;
     }
     .btn-edit:hover { color: var(--blue); background: rgba(91,155,213,0.1); }
+
+    /* ===== SUPERSET / DROPSET ===== */
+    .block-type-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 9px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--subtle);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: auto;
+    }
+    .block-type-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .block-type-btn.is-superset { border-color: rgba(91,155,213,0.4); color: var(--blue); background: rgba(91,155,213,0.08); }
+
+    .ss-label {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--blue);
+      background: rgba(91,155,213,0.12);
+      border-radius: 4px;
+      padding: 1px 5px;
+      letter-spacing: 0.5px;
+      margin-right: 2px;
+      flex-shrink: 0;
+    }
+
+    .dropset-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--orange);
+      background: rgba(193,88,26,0.1);
+      border: 1px solid rgba(193,88,26,0.2);
+      border-radius: 4px;
+      padding: 1px 5px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+
+    .dropset-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .dropset-row label {
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dropset-row input[type=checkbox] { accent-color: var(--orange); width: 14px; height: 14px; }
   </style>
 </head>
 <body>
@@ -1017,6 +1080,11 @@
           <input class="picker-scheme-input" id="picker-scheme" placeholder="Reps / scheme (e.g. 8-12)">
           <input class="picker-scheme-input" id="picker-weight" type="number" step="0.5" min="0" placeholder="Target kg (optional)">
         </div>
+        <div class="dropset-row">
+          <label>
+            <input type="checkbox" id="picker-is-dropset"> Drop Set (reduce weight each set)
+          </label>
+        </div>
         <div class="picker-actions">
           <button class="btn-picker-cancel" onclick="closeExPicker()">Cancel</button>
           <button class="btn-picker-add" id="btn-picker-add" onclick="saveFromPicker()" disabled>Add Exercise</button>
@@ -1056,6 +1124,11 @@
           <label class="modal-label">Target kg</label>
           <input class="modal-input" id="edit-ex-weight" type="number" step="0.5" min="0" placeholder="Optional">
         </div>
+      </div>
+      <div class="dropset-row">
+        <label>
+          <input type="checkbox" id="edit-ex-dropset"> Drop Set (reduce weight each set)
+        </label>
       </div>
       <div class="modal-error" id="edit-ex-error"></div>
       <div class="modal-actions">
@@ -1253,6 +1326,7 @@
             rep_scheme:       ex.rep_scheme,
             target_weight_kg: ex.target_weight_kg,
             sort_order:       ex.sort_order,
+            is_dropset:       ex.is_dropset || false,
           })));
         }
       }
@@ -1521,13 +1595,18 @@
         return;
       }
 
+      const SS_LABELS = ['A1','A2','A3','A4','A5'];
+
       const blocksHtml = blocks.map(b => {
-        const tier  = b.tier.toLowerCase();
-        const exs   = exercises[b.id] || [];
+        const tier       = b.tier.toLowerCase();
+        const isSuperset = b.block_type === 'superset';
+        const exs        = exercises[b.id] || [];
+
         const exHtml = exs.length ? `
           <table class="exercise-table">
             <thead>
               <tr>
+                ${isSuperset ? '<th style="width:28px"></th>' : ''}
                 <th>Exercise</th>
                 <th>Sets × Reps</th>
                 <th>Target</th>
@@ -1535,10 +1614,14 @@
               </tr>
             </thead>
             <tbody>
-              ${exs.map(ex => `
+              ${exs.map((ex, i) => `
                 <tr>
+                  ${isSuperset ? `<td><span class="ss-label">${SS_LABELS[i] || (i+1)}</span></td>` : ''}
                   <td>
-                    <div class="exercise-name">${esc(ex.exercise_name)}</div>
+                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                      <div class="exercise-name">${esc(ex.exercise_name)}</div>
+                      ${ex.is_dropset ? '<span class="dropset-badge">↓ DS</span>' : ''}
+                    </div>
                     ${ex.muscle_group ? `<div class="exercise-muscle">${esc(ex.muscle_group)}</div>` : ''}
                   </td>
                   <td><span class="exercise-scheme">${ex.sets ? ex.sets + ' × ' : ''}${esc(ex.rep_scheme || (ex.sets ? '' : '—'))}</span></td>
@@ -1558,6 +1641,7 @@
             <div class="block-header">
               <span class="tier-badge ${tier}">${b.tier}</span>
               <span class="block-desc">${tier === 'win' ? 'Key compound lift — non-negotiable' : tier === 'bonus' ? 'Supporting compound' : 'Isolation / finishing touches'}</span>
+              <button class="block-type-btn ${isSuperset ? 'is-superset' : ''}" onclick="toggleBlockType('${b.id}')">${isSuperset ? '⇄ Superset' : '▸ Straight'}</button>
             </div>
             ${exHtml}
             <button class="btn-add" onclick="openExPicker('${b.id}')">+ Add Exercise</button>
@@ -1578,6 +1662,17 @@
           <button class="btn-primary" style="max-width:200px" onclick="openAssignModal()">Assign to Client →</button>
         </div>
       `;
+    }
+
+    // ===== TOGGLE BLOCK TYPE =====
+    async function toggleBlockType(blockId) {
+      const block = blocks.find(b => b.id === blockId);
+      if (!block) return;
+      const newType = block.block_type === 'superset' ? 'straight' : 'superset';
+      const { error } = await db.from('workout_blocks').update({ block_type: newType }).eq('id', blockId);
+      if (error) { alert(error.message); return; }
+      block.block_type = newType;
+      renderEditor();
     }
 
     // ===== EXERCISE LIBRARY =====
@@ -1721,6 +1816,7 @@
       document.getElementById('picker-scheme').value       = '';
       document.getElementById('picker-weight').value       = '';
       document.getElementById('picker-selected-name').textContent = 'Select an exercise above or type custom below';
+      document.getElementById('picker-is-dropset').checked  = false;
       document.getElementById('btn-picker-add').disabled   = true;
       renderMuscleChips();
       renderPickerList();
@@ -1826,6 +1922,7 @@
         rep_scheme:       scheme || null,
         target_weight_kg: weight,
         sort_order:       nextOrder,
+        is_dropset:       document.getElementById('picker-is-dropset').checked,
       }).select().single();
 
       if (error) { alert(error.message); return; }
@@ -1846,11 +1943,12 @@
       const ex    = exercises[blockId]?.find(e => e.id === exId);
       if (!ex) return;
 
-      document.getElementById('edit-ex-name').value   = ex.exercise_name || '';
-      document.getElementById('edit-ex-muscle').value = ex.muscle_group  || '';
-      document.getElementById('edit-ex-sets').value   = ex.sets          || '';
-      document.getElementById('edit-ex-scheme').value = ex.rep_scheme    || '';
-      document.getElementById('edit-ex-weight').value = ex.target_weight_kg || '';
+      document.getElementById('edit-ex-name').value    = ex.exercise_name    || '';
+      document.getElementById('edit-ex-muscle').value  = ex.muscle_group     || '';
+      document.getElementById('edit-ex-sets').value    = ex.sets             || '';
+      document.getElementById('edit-ex-scheme').value  = ex.rep_scheme       || '';
+      document.getElementById('edit-ex-weight').value  = ex.target_weight_kg || '';
+      document.getElementById('edit-ex-dropset').checked = ex.is_dropset     || false;
       document.getElementById('edit-ex-error').style.display = 'none';
       openModal('edit-ex-modal');
     }
@@ -1877,6 +1975,7 @@
         sets,
         rep_scheme:       scheme || null,
         target_weight_kg: weight,
+        is_dropset:       document.getElementById('edit-ex-dropset').checked,
       }).eq('id', editExId);
 
       if (error) { showModalError('edit-ex-error', error.message); btn.disabled = false; btn.textContent = 'Save Changes'; return; }
@@ -1888,6 +1987,7 @@
           ...exercises[editBlockId][idx],
           exercise_name: name, muscle_group: muscle || null,
           sets, rep_scheme: scheme || null, target_weight_kg: weight,
+          is_dropset: document.getElementById('edit-ex-dropset').checked,
         };
       }
 
