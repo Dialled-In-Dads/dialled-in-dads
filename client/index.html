@@ -635,10 +635,12 @@
       });
       document.getElementById('phase-pill').textContent  = client.current_phase || phaseLabel(client.phase) || '—';
 
+      const weekStart = getWeekStart();
       const [
         { data: checkIns },
         { data: programme },
         todayWorkout,
+        { data: weekWorkouts },
       ] = await Promise.all([
         db.from('check_ins')
           .select('check_in_date, weight_kg, calories_yesterday, protein_yesterday_g, steps_yesterday, feeling_score, win_completed')
@@ -649,13 +651,17 @@
           ? db.from('programmes').select('name').eq('id', client.programme_id).maybeSingle()
           : Promise.resolve({ data: null }),
         getTodayWorkout(client),
+        db.from('workout_logs')
+          .select('log_date')
+          .eq('client_id', client.id)
+          .gte('log_date', weekStart),
       ]);
 
-      renderDashboard(client, checkIns || [], programme, todayWorkout);
+      renderDashboard(client, checkIns || [], programme, todayWorkout, weekWorkouts || []);
     })();
 
     // ---- Render ----
-    function renderDashboard(client, checkIns, programme, todayWorkout) {
+    function renderDashboard(client, checkIns, programme, todayWorkout, weekWorkouts) {
       const latest  = checkIns[0] || null;
       const streak  = calcStreak(checkIns);
 
@@ -677,7 +683,7 @@
       const habCalsHit    = client.goal_calories
         ? thisWeek.filter(c => c.calories_yesterday != null && c.calories_yesterday <= client.goal_calories * 1.05).length
         : null;
-      const habWorkout    = thisWeek.filter(c => c.win_completed).length;
+      const habWorkout    = new Set((weekWorkouts || []).map(w => w.log_date)).size;
       const habSteps      = client.goal_steps
         ? thisWeek.filter(c => c.steps_yesterday != null && c.steps_yesterday >= client.goal_steps).length
         : null;
