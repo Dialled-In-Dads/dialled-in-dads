@@ -668,7 +668,7 @@
       // Motivational message
       const firstName = (client.name || 'champ').split(/[\s.]/)[0];
       const capName   = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-      const message   = client.daily_note || autoMessage(dayNum, streak, capName);
+      const message   = (client.daily_note && client.daily_note_date === today) ? client.daily_note : autoMessage(dayNum, streak, capName);
 
       // This week habits
       const weekStart     = getWeekStart();

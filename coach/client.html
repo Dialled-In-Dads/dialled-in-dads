@@ -1141,7 +1141,8 @@
       btn.disabled = true;
       btn.textContent = 'Saving…';
 
-      const { error } = await db.from('clients').update({ daily_note: note || null }).eq('id', clientId);
+      const todayDate = new Date().toISOString().split('T')[0];
+      const { error } = await db.from('clients').update({ daily_note: note || null, daily_note_date: note ? todayDate : null }).eq('id', clientId);
 
       if (!error) {
         clientData.daily_note = note || null;
