@@ -189,6 +189,18 @@
       text-align: center; padding-top: 10px;
     }
 
+    .set-row.drop-row {
+      background: rgba(193,88,26,0.05);
+      border: 1px solid rgba(193,88,26,0.15);
+      border-radius: 8px;
+      padding: 4px 6px 4px 0;
+      margin-top: 2px;
+    }
+    .set-row.drop-row .set-num {
+      color: var(--orange);
+      font-size: 13px;
+    }
+
     .set-input {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -724,6 +736,40 @@
                       id="btn-${ex.id}-${s}"
                       ${isDone ? 'disabled' : `onclick="logSet('${ex.id}','${block.id}',${s},${sets})"`}>
                       ${isDone ? 'Logged' : 'Log'}
+                    </button>
+                  </div>
+                </div>`;
+              }
+
+              // Drop set row — appears after final regular set
+              if (ex.is_dropset) {
+                const dropSetNum = sets + 1;
+                const dp = prev[dropSetNum];
+                const dl = logged[dropSetNum];
+                const dropDone = !!dl;
+                html += `<div class="set-row drop-row" id="set-${ex.id}-${dropSetNum}">
+                  <div class="set-num">↓</div>
+                  <div>
+                    <input class="set-input ${dropDone ? 'logged' : ''}"
+                      id="w-${ex.id}-${dropSetNum}" type="number" step="0.5" min="0"
+                      placeholder="${dp ? dp.weight_kg : '↓ wt'}"
+                      value="${dropDone ? dl.weight_kg : ''}"
+                      inputmode="decimal" ${dropDone ? 'readonly' : ''}>
+                    ${dp ? `<div class="prev-val">${dp.weight_kg}kg prev</div>` : ''}
+                  </div>
+                  <div>
+                    <input class="set-input ${dropDone ? 'logged' : ''}"
+                      id="r-${ex.id}-${dropSetNum}" type="number" step="1" min="0"
+                      placeholder="${dp ? dp.reps_completed : 'AMRAP'}"
+                      value="${dropDone ? dl.reps_completed : ''}"
+                      inputmode="numeric" ${dropDone ? 'readonly' : ''}>
+                    ${dp ? `<div class="prev-val">${dp.reps_completed} reps prev</div>` : ''}
+                  </div>
+                  <div>
+                    <button class="btn-log-set ${dropDone ? 'done' : ''}"
+                      id="btn-${ex.id}-${dropSetNum}"
+                      ${dropDone ? 'disabled' : `onclick="logSet('${ex.id}','${block.id}',${dropSetNum},${sets})"`}>
+                      ${dropDone ? 'Logged' : 'Log'}
                     </button>
                   </div>
                 </div>`;
