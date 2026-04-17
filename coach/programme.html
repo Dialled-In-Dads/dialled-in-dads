@@ -1049,6 +1049,22 @@
     </div>
   </div>
 
+  <!-- ===== MODAL: Rename Day ===== -->
+  <div class="modal-overlay" id="rename-day-modal">
+    <div class="modal">
+      <div class="modal-title">Rename Workout</div>
+      <div class="modal-field">
+        <label class="modal-label">Workout Name</label>
+        <input class="modal-input" id="rename-day-input" placeholder="e.g. Push, Pull, Legs, Upper…">
+      </div>
+      <div class="modal-error" id="rename-day-error"></div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeModal('rename-day-modal')">Cancel</button>
+        <button class="btn-modal-save" id="rename-day-save-btn" onclick="saveRenameDay()">Rename</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== EXERCISE PICKER MODAL ===== -->
   <div class="picker-modal" id="ex-picker-modal">
     <div class="picker-box">
@@ -1273,6 +1289,18 @@
 
     async function deleteWeek(weekId) {
       if (!confirm('Delete this week and all its days and exercises?')) return;
+
+      // Must delete children first (FK constraints: exercises → blocks → days → week)
+      const wDays = days[weekId] || [];
+      for (const d of wDays) {
+        const { data: bks } = await db.from('workout_blocks').select('id').eq('day_id', d.id);
+        for (const b of (bks || [])) {
+          await db.from('block_exercises').delete().eq('block_id', b.id);
+        }
+        await db.from('workout_blocks').delete().eq('day_id', d.id);
+      }
+      await db.from('programme_days').delete().eq('week_id', weekId);
+
       const { error } = await db.from('programme_weeks').delete().eq('id', weekId);
       if (error) { alert(error.message); return; }
       weeks = weeks.filter(w => w.id !== weekId);
@@ -1655,7 +1683,10 @@
 
       el.innerHTML = `
         <div class="editor-header">
-          <div class="editor-day-title">${esc(selDay.label || 'Workout')}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="editor-day-title">${esc(selDay.label || 'Workout')}</div>
+            <button class="btn-edit" onclick="openRenameDayModal()" title="Rename workout" style="font-size:15px;padding:3px 7px">✏️</button>
+          </div>
           <div class="editor-day-meta">Week ${weekNum} · Day ${selDay.day_number} · Workout</div>
         </div>
         <div class="editor-body">
@@ -2018,10 +2049,41 @@
     }
 
     async function deleteExercise(exId, blockId) {
-      if (!confirm('Remove this exercise?')) return;
       const { error } = await db.from('block_exercises').delete().eq('id', exId);
       if (error) { alert(error.message); return; }
       exercises[blockId] = exercises[blockId].filter(e => e.id !== exId);
+      renderEditor();
+    }
+
+    // ===== RENAME DAY =====
+    function openRenameDayModal() {
+      if (!selDay) return;
+      document.getElementById('rename-day-input').value = selDay.label || '';
+      document.getElementById('rename-day-error').style.display = 'none';
+      openModal('rename-day-modal');
+      setTimeout(() => document.getElementById('rename-day-input').select(), 50);
+    }
+
+    async function saveRenameDay() {
+      const btn   = document.getElementById('rename-day-save-btn');
+      const label = document.getElementById('rename-day-input').value.trim();
+      if (!label) { showModalError('rename-day-error', 'Please enter a name.'); return; }
+
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      const { error } = await db.from('programme_days').update({ label }).eq('id', selDay.id);
+      if (error) { showModalError('rename-day-error', error.message); btn.disabled = false; btn.textContent = 'Rename'; return; }
+
+      selDay.label = label;
+      const weekDays = days[selDay.week_id];
+      if (weekDays) {
+        const idx = weekDays.findIndex(d => d.id === selDay.id);
+        if (idx >= 0) weekDays[idx].label = label;
+      }
+
+      closeModal('rename-day-modal');
+      btn.disabled = false; btn.textContent = 'Rename';
+      renderStructure();
       renderEditor();
     }
 
