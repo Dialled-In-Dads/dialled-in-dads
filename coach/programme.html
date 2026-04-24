@@ -2331,10 +2331,15 @@
       const d = (days[weekId] || []).find(d => d.id === dayId);
       if (!confirm(`Delete "${d?.label || 'this day'}"? All exercises will be removed.`)) return;
 
+      // Null out workout_log references (FK constraint) before deleting the day
+      await db.from('workout_logs').update({ programme_day_id: null }).eq('programme_day_id', dayId);
+
       const { data: bks } = await db.from('workout_blocks').select('id').eq('day_id', dayId);
       for (const b of (bks || [])) await db.from('block_exercises').delete().eq('block_id', b.id);
       await db.from('workout_blocks').delete().eq('day_id', dayId);
-      await db.from('programme_days').delete().eq('id', dayId);
+
+      const { error } = await db.from('programme_days').delete().eq('id', dayId);
+      if (error) { alert('Could not delete day: ' + error.message); return; }
 
       days[weekId] = (days[weekId] || []).filter(d => d.id !== dayId);
       if (selDay?.id === dayId) { selDay = null; renderEditor(); }
