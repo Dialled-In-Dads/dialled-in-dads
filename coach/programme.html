@@ -1112,6 +1112,17 @@
           <input class="picker-scheme-input" id="picker-scheme" placeholder="Reps / scheme (e.g. 8-12)">
           <input class="picker-scheme-input" id="picker-weight" type="number" step="0.5" min="0" placeholder="Target kg (optional)">
         </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <label id="picker-wt-kg" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(193,88,26,0.15);border:1px solid rgba(193,88,26,0.4);border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:var(--orange);cursor:pointer">
+            <input type="radio" name="picker-wt" value="kg" checked style="display:none" onchange="pickerWtChange()"> kg
+          </label>
+          <label id="picker-wt-bw" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:none;border:1px solid var(--border);border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer">
+            <input type="radio" name="picker-wt" value="bw" style="display:none" onchange="pickerWtChange()"> BW
+          </label>
+          <label id="picker-wt-band" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:none;border:1px solid var(--border);border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer">
+            <input type="radio" name="picker-wt" value="band" style="display:none" onchange="pickerWtChange()"> Band
+          </label>
+        </div>
         <div class="dropset-row">
           <label>
             <input type="checkbox" id="picker-is-dropset"> Drop Set on last set
@@ -1152,10 +1163,21 @@
           <label class="modal-label">Reps / scheme</label>
           <input class="modal-input" id="edit-ex-scheme" placeholder="e.g. 8-12">
         </div>
-        <div class="modal-field">
+        <div class="modal-field" id="edit-ex-weight-field">
           <label class="modal-label">Target kg</label>
           <input class="modal-input" id="edit-ex-weight" type="number" step="0.5" min="0" placeholder="Optional">
         </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <label id="edit-wt-kg" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:rgba(193,88,26,0.15);border:1px solid rgba(193,88,26,0.4);border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:var(--orange);cursor:pointer">
+          <input type="radio" name="edit-wt" value="kg" checked style="display:none" onchange="editWtChange()"> kg
+        </label>
+        <label id="edit-wt-bw" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:none;border:1px solid var(--border);border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer">
+          <input type="radio" name="edit-wt" value="bw" style="display:none" onchange="editWtChange()"> BW
+        </label>
+        <label id="edit-wt-band" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;background:none;border:1px solid var(--border);border-radius:8px;padding:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer">
+          <input type="radio" name="edit-wt" value="band" style="display:none" onchange="editWtChange()"> Band
+        </label>
       </div>
       <div class="dropset-row">
         <label>
@@ -1678,7 +1700,7 @@
                       ${ex.muscle_group ? `<div class="exercise-muscle">${esc(ex.muscle_group)}</div>` : ''}
                     </td>
                     <td><span class="exercise-scheme">${ex.sets ? ex.sets + ' × ' : ''}${esc(ex.rep_scheme || (ex.sets ? '' : '—'))}</span></td>
-                    <td><span class="exercise-weight">${ex.target_weight_kg ? ex.target_weight_kg + 'kg' : '—'}</span></td>
+                    <td>${ex.weight_type === 'bw' ? '<span style="font-size:10px;font-weight:700;color:var(--blue);background:rgba(91,155,213,0.12);border-radius:4px;padding:2px 6px">BW</span>' : ex.weight_type === 'band' ? '<span style="font-size:10px;font-weight:700;color:var(--green);background:rgba(46,204,138,0.12);border-radius:4px;padding:2px 6px">Band</span>' : `<span class="exercise-weight">${ex.target_weight_kg ? ex.target_weight_kg + 'kg' : '—'}</span>`}</td>
                     <td style="display:flex;gap:2px;align-items:center">
                       ${!isLast ? `<button class="btn-link ${ex.paired_with_next ? 'linked' : ''}" onclick="togglePairedWithNext('${ex.id}','${b.id}')" title="${ex.paired_with_next ? 'Unlink' : 'Superset with next'}">⇄</button>` : '<span style="display:inline-block;width:26px"></span>'}
                       <button class="btn-edit" onclick="openEditExercise('${ex.id}','${b.id}')" title="Edit">✏️</button>
@@ -1879,6 +1901,29 @@
     let pickerMuscleFilter = 'All';
     let pickerSelected     = null;  // { name, muscle }
 
+    function setWtToggle(prefix, val) {
+      ['kg','bw','band'].forEach(v => {
+        const el = document.getElementById(`${prefix}-wt-${v}`);
+        const active = v === val;
+        el.style.background    = active ? 'rgba(193,88,26,0.15)' : 'none';
+        el.style.borderColor   = active ? 'rgba(193,88,26,0.4)'  : 'var(--border)';
+        el.style.color         = active ? 'var(--orange)'        : 'var(--muted)';
+        el.querySelector('input').checked = active;
+      });
+    }
+
+    function pickerWtChange() {
+      const val = document.querySelector('input[name="picker-wt"]:checked').value;
+      setWtToggle('picker', val);
+      document.getElementById('picker-weight').style.display = val === 'kg' ? '' : 'none';
+    }
+
+    function editWtChange() {
+      const val = document.querySelector('input[name="edit-wt"]:checked').value;
+      setWtToggle('edit', val);
+      document.getElementById('edit-ex-weight-field').style.display = val === 'kg' ? '' : 'none';
+    }
+
     function openExPicker(blockId) {
       pickerBlockId      = blockId;
       pickerMuscleFilter = 'All';
@@ -1889,9 +1934,11 @@
       document.getElementById('picker-sets').value         = '';
       document.getElementById('picker-scheme').value       = '';
       document.getElementById('picker-weight').value       = '';
+      document.getElementById('picker-weight').style.display = '';
       document.getElementById('picker-selected-name').textContent = 'Select an exercise above or type custom below';
       document.getElementById('picker-is-dropset').checked  = false;
       document.getElementById('btn-picker-add').disabled   = true;
+      setWtToggle('picker', 'kg');
       renderMuscleChips();
       renderPickerList();
       document.getElementById('ex-picker-modal').classList.add('open');
@@ -1971,7 +2018,8 @@
       const customMuscle = document.getElementById('picker-custom-muscle').value;
       const setsVal      = parseInt(document.getElementById('picker-sets').value) || null;
       const scheme       = document.getElementById('picker-scheme').value.trim();
-      const weight       = parseFloat(document.getElementById('picker-weight').value) || null;
+      const weightType   = document.querySelector('input[name="picker-wt"]:checked')?.value || 'kg';
+      const weight       = weightType === 'kg' ? (parseFloat(document.getElementById('picker-weight').value) || null) : null;
 
       const name   = customName || pickerSelected?.name;
       const muscle = customName ? customMuscle : pickerSelected?.muscle;
@@ -1995,6 +2043,7 @@
         sets,
         rep_scheme:       scheme || null,
         target_weight_kg: weight,
+        weight_type:      weightType,
         sort_order:       nextOrder,
         is_dropset:       document.getElementById('picker-is-dropset').checked,
       }).select().single();
@@ -2024,6 +2073,9 @@
       document.getElementById('edit-ex-weight').value  = ex.target_weight_kg || '';
       document.getElementById('edit-ex-dropset').checked = ex.is_dropset     || false;
       document.getElementById('edit-ex-error').style.display = 'none';
+      const wt = ex.weight_type || 'kg';
+      setWtToggle('edit', wt);
+      document.getElementById('edit-ex-weight-field').style.display = wt === 'kg' ? '' : 'none';
       openModal('edit-ex-modal');
     }
 
@@ -2033,7 +2085,8 @@
       const muscle = document.getElementById('edit-ex-muscle').value;
       const setsVal = parseInt(document.getElementById('edit-ex-sets').value) || null;
       const scheme = document.getElementById('edit-ex-scheme').value.trim();
-      const weight = parseFloat(document.getElementById('edit-ex-weight').value) || null;
+      const weightType = document.querySelector('input[name="edit-wt"]:checked')?.value || 'kg';
+      const weight     = weightType === 'kg' ? (parseFloat(document.getElementById('edit-ex-weight').value) || null) : null;
 
       if (!name) { showModalError('edit-ex-error', 'Exercise name is required.'); return; }
 
@@ -2049,6 +2102,7 @@
         sets,
         rep_scheme:       scheme || null,
         target_weight_kg: weight,
+        weight_type:      weightType,
         is_dropset:       document.getElementById('edit-ex-dropset').checked,
       }).eq('id', editExId);
 
@@ -2061,6 +2115,7 @@
           ...exercises[editBlockId][idx],
           exercise_name: name, muscle_group: muscle || null,
           sets, rep_scheme: scheme || null, target_weight_kg: weight,
+          weight_type: weightType,
           is_dropset: document.getElementById('edit-ex-dropset').checked,
         };
       }

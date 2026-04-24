@@ -877,6 +877,10 @@
               const logged = loggedSets[ex.id] || {};
               const label  = ssLabels[exIdx];
 
+              const isBW   = ex.weight_type === 'bw';
+              const isBand = ex.weight_type === 'band';
+              const wtLabel = isBW ? 'BW' : isBand ? 'Band' : null;
+
               html += `<div class="exercise-card" id="ex-${ex.id}">
                 <div class="exercise-header">
                   <div>
@@ -884,33 +888,39 @@
                       ${label ? `<span class="ss-label">${label}</span>` : ''}
                       ${esc(ex.exercise_name)}
                       ${ex.is_dropset ? '<span class="dropset-tag">↓ Drop</span>' : ''}
+                      ${wtLabel ? `<span style="font-size:10px;font-weight:700;color:var(--blue);background:rgba(91,155,213,0.12);border-radius:4px;padding:2px 6px;margin-left:4px">${wtLabel}</span>` : ''}
                     </div>
                     <div class="exercise-meta">${ex.rep_scheme || `${sets} sets`}${ex.muscle_group ? ' · ' + ex.muscle_group : ''}</div>
                   </div>
-                  ${target ? `<div class="exercise-target">
+                  ${target && !wtLabel ? `<div class="exercise-target">
                     <div class="target-val">${target}kg</div>
                     <div class="target-label">Target</div>
                   </div>` : ''}
                 </div>
 
                 <div class="sets-header">
-                  <span>Set</span><span>Weight</span><span>Reps</span><span>Log</span>
+                  <span>Set</span><span>${wtLabel || 'Weight'}</span><span>Reps</span><span>Log</span>
                 </div>`;
 
               for (let s = 1; s <= sets; s++) {
                 const p = prev[s];
                 const l = logged[s];
                 const isDone = !!l;
-                html += `<div class="set-row" id="set-${ex.id}-${s}">
-                  <div class="set-num">${s}</div>
-                  <div>
-                    <input class="set-input ${isDone ? 'logged' : ''}"
+                const wtCell = wtLabel
+                  ? `<div style="display:flex;align-items:center;height:44px">
+                      <input id="w-${ex.id}-${s}" type="hidden" value="${wtLabel}">
+                      <span style="font-size:12px;font-weight:700;color:var(--blue);background:rgba(91,155,213,0.12);border:1px solid rgba(91,155,213,0.25);border-radius:6px;padding:5px 10px">${wtLabel}</span>
+                     </div>
+                     ${p ? `<div class="prev-val">${p.reps_completed} reps prev</div>` : ''}`
+                  : `<input class="set-input ${isDone ? 'logged' : ''}"
                       id="w-${ex.id}-${s}" type="number" step="0.5" min="0"
                       placeholder="${p ? p.weight_kg : (target || '—')}"
                       value="${isDone ? l.weight_kg : ''}"
                       inputmode="decimal" ${isDone ? 'readonly' : ''}>
-                    ${p ? `<div class="prev-val">${p.weight_kg}kg prev</div>` : ''}
-                  </div>
+                    ${p ? `<div class="prev-val">${p.weight_kg}kg prev</div>` : ''}`;
+                html += `<div class="set-row" id="set-${ex.id}-${s}">
+                  <div class="set-num">${s}</div>
+                  <div>${wtCell}</div>
                   <div>
                     <input class="set-input ${isDone ? 'logged' : ''}"
                       id="r-${ex.id}-${s}" type="number" step="1" min="0"
@@ -922,7 +932,7 @@
                   <div>
                     <button class="btn-log-set ${isDone ? 'done' : ''}"
                       id="btn-${ex.id}-${s}"
-                      ${isDone ? 'disabled' : `onclick="logSet('${ex.id}','${block.id}',${s},${sets})"`}>
+                      ${isDone ? 'disabled' : `onclick="logSet('${ex.id}','${block.id}',${s},${sets},'${ex.weight_type||'kg'}')"`}>
                       ${isDone ? 'Logged' : 'Log'}
                     </button>
                   </div>
@@ -995,19 +1005,19 @@
     }
 
     // ===== LOG A SET =====
-    async function logSet(exId, blockId, setNum, totalSets) {
-      const wInput = document.getElementById(`w-${exId}-${setNum}`);
-      const rInput = document.getElementById(`r-${exId}-${setNum}`);
-      const btn    = document.getElementById(`btn-${exId}-${setNum}`);
+    async function logSet(exId, blockId, setNum, totalSets, weightType = 'kg') {
+      const wInput  = document.getElementById(`w-${exId}-${setNum}`);
+      const rInput  = document.getElementById(`r-${exId}-${setNum}`);
+      const btn     = document.getElementById(`btn-${exId}-${setNum}`);
+      const isBwBand = weightType === 'bw' || weightType === 'band';
 
-      const weight = parseFloat(wInput.value);
+      const weight = isBwBand ? null : parseFloat(wInput.value);
       const reps   = parseInt(rInput.value);
 
-      if (!weight || !reps) {
-        wInput.style.borderColor = !weight ? 'var(--orange)' : '';
-        rInput.style.borderColor = !reps   ? 'var(--orange)' : '';
-        return;
-      }
+      if (!isBwBand && !weight) { wInput.style.borderColor = 'var(--orange)'; return; }
+      if (!reps) { rInput.style.borderColor = 'var(--orange)'; return; }
+      if (wInput.style) wInput.style.borderColor = '';
+      rInput.style.borderColor = '';
 
       btn.disabled    = true;
       btn.textContent = 'Saving…';
@@ -1028,8 +1038,8 @@
         workoutLog = log;
       }
 
-      // e1RM (Epley: weight × (1 + reps/30))
-      const e1rm = parseFloat((weight * (1 + reps / 30)).toFixed(1));
+      // e1RM (Epley: weight × (1 + reps/30)) — null for BW/Band
+      const e1rm = weight ? parseFloat((weight * (1 + reps / 30)).toFixed(1)) : null;
 
       const { data: setLog, error: setErr } = await db
         .from('set_logs')
