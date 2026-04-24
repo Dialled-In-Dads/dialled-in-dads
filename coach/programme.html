@@ -1184,6 +1184,10 @@
           <input type="checkbox" id="edit-ex-dropset"> Drop Set on last set
         </label>
       </div>
+      <div class="modal-field" id="edit-ex-move-field">
+        <label class="modal-label">Move to Day</label>
+        <select class="modal-select" id="edit-ex-move-day"></select>
+      </div>
       <div class="modal-error" id="edit-ex-error"></div>
       <div class="modal-actions">
         <button class="btn-modal-cancel" onclick="closeModal('edit-ex-modal')">Cancel</button>
@@ -2076,6 +2080,20 @@
       const wt = ex.weight_type || 'kg';
       setWtToggle('edit', wt);
       document.getElementById('edit-ex-weight-field').style.display = wt === 'kg' ? '' : 'none';
+
+      // Populate move-to-day dropdown
+      const sel = document.getElementById('edit-ex-move-day');
+      sel.innerHTML = `<option value="${selDay.id}">— Stay on current day —</option>`;
+      for (const w of weeks) {
+        for (const d of (days[w.id] || [])) {
+          if (d.id === selDay.id) continue;
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = `Week ${w.week_number}${w.label ? ' · ' + w.label : ''} — ${d.label || 'Day ' + d.day_number}`;
+          sel.appendChild(opt);
+        }
+      }
+
       openModal('edit-ex-modal');
     }
 
@@ -2096,7 +2114,32 @@
 
       btn.disabled = true; btn.textContent = 'Saving…';
 
+      const targetDayId = document.getElementById('edit-ex-move-day').value;
+      const isMoving    = targetDayId && targetDayId !== selDay.id;
+
+      let newBlockId = editBlockId;
+      if (isMoving) {
+        // Find or create a matching-tier block on the target day
+        const currentBlock = blocks.find(b => b.id === editBlockId);
+        const { data: targetBlocks } = await db.from('workout_blocks').select('*').eq('day_id', targetDayId).order('sort_order');
+        const matchBlock = (targetBlocks || []).find(b => b.tier === currentBlock?.tier);
+        if (matchBlock) {
+          newBlockId = matchBlock.id;
+        } else {
+          const maxSort = Math.max(0, ...(targetBlocks || []).map(b => b.sort_order || 0));
+          const { data: newBlock, error: blockErr } = await db.from('workout_blocks').insert({
+            day_id:     targetDayId,
+            tier:       currentBlock?.tier || 'Win',
+            block_type: currentBlock?.block_type || 'straight',
+            sort_order: maxSort + 1,
+          }).select().single();
+          if (blockErr) { showModalError('edit-ex-error', blockErr.message); btn.disabled = false; btn.textContent = 'Save Changes'; return; }
+          newBlockId = newBlock.id;
+        }
+      }
+
       const { error } = await db.from('block_exercises').update({
+        block_id:         newBlockId,
         exercise_name:    name,
         muscle_group:     muscle || null,
         sets,
@@ -2108,16 +2151,21 @@
 
       if (error) { showModalError('edit-ex-error', error.message); btn.disabled = false; btn.textContent = 'Save Changes'; return; }
 
-      // Update local state
-      const idx = exercises[editBlockId]?.findIndex(e => e.id === editExId);
-      if (idx >= 0) {
-        exercises[editBlockId][idx] = {
-          ...exercises[editBlockId][idx],
-          exercise_name: name, muscle_group: muscle || null,
-          sets, rep_scheme: scheme || null, target_weight_kg: weight,
-          weight_type: weightType,
-          is_dropset: document.getElementById('edit-ex-dropset').checked,
-        };
+      if (isMoving) {
+        // Remove from current block's local state — it lives on a different day now
+        exercises[editBlockId] = (exercises[editBlockId] || []).filter(e => e.id !== editExId);
+      } else {
+        // Update in place
+        const idx = exercises[editBlockId]?.findIndex(e => e.id === editExId);
+        if (idx >= 0) {
+          exercises[editBlockId][idx] = {
+            ...exercises[editBlockId][idx],
+            exercise_name: name, muscle_group: muscle || null,
+            sets, rep_scheme: scheme || null, target_weight_kg: weight,
+            weight_type: weightType,
+            is_dropset: document.getElementById('edit-ex-dropset').checked,
+          };
+        }
       }
 
       closeModal('edit-ex-modal');
@@ -2331,10 +2379,15 @@
       const d = (days[weekId] || []).find(d => d.id === dayId);
       if (!confirm(`Delete "${d?.label || 'this day'}"? All exercises will be removed.`)) return;
 
+      // Null out workout_log references (FK constraint) before deleting the day
+      await db.from('workout_logs').update({ programme_day_id: null }).eq('programme_day_id', dayId);
+
       const { data: bks } = await db.from('workout_blocks').select('id').eq('day_id', dayId);
       for (const b of (bks || [])) await db.from('block_exercises').delete().eq('block_id', b.id);
       await db.from('workout_blocks').delete().eq('day_id', dayId);
-      await db.from('programme_days').delete().eq('id', dayId);
+
+      const { error } = await db.from('programme_days').delete().eq('id', dayId);
+      if (error) { alert('Could not delete day: ' + error.message); return; }
 
       days[weekId] = (days[weekId] || []).filter(d => d.id !== dayId);
       if (selDay?.id === dayId) { selDay = null; renderEditor(); }
