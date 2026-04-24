@@ -704,16 +704,25 @@
 
       if (!allDays.length) { renderNoProgramme(); return; }
 
-      // Figure out today's day index
-      const startDate   = new Date(assignment.start_date + 'T00:00:00');
-      const todayDate   = new Date(today + 'T00:00:00');
-      const daysElapsed = Math.round((todayDate - startDate) / DAY_MS);
-      const dayIndex    = ((daysElapsed % allDays.length) + allDays.length) % allDays.length;
-      todayDay     = allDays[dayIndex];
+      // Figure out which week of the programme we're in
+      const startDate    = new Date(assignment.start_date + 'T00:00:00');
+      const todayDate    = new Date(today + 'T00:00:00');
+      const daysElapsed  = Math.max(0, Math.round((todayDate - startDate) / DAY_MS));
+      const weeksElapsed = Math.floor(daysElapsed / 7);
+
+      const uniqueWeekNums = [...new Set(allDays.map(d => d.week_number))].sort((a, b) => a - b);
+      const currentWeekNum = uniqueWeekNums[weeksElapsed % uniqueWeekNums.length];
+
+      // Match today's day of week to day_number (Mon=1 … Sun=7)
+      const jsDay       = new Date().getDay();
+      const todayDayNum = jsDay === 0 ? 7 : jsDay;
+
+      todayDay     = allDays.find(d => d.week_number === currentWeekNum && d.day_number === todayDayNum)
+                     || { id: null, day_type: 'rest', label: 'Rest Day', week_number: currentWeekNum, day_number: todayDayNum };
       scheduledDay = todayDay;
 
-      // Week days (same week_number as today)
-      weekDays = allDays.filter(d => d.week_number === todayDay.week_number);
+      // Week days for the current programme week
+      weekDays = allDays.filter(d => d.week_number === currentWeekNum);
 
       // Load today's blocks + exercises if workout day
       if (todayDay.day_type === 'workout') {
