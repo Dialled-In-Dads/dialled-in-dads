@@ -1324,35 +1324,45 @@
       btn.disabled = true;
       btn.textContent = 'Restarting…';
 
-      const today = new Date().toISOString().split('T')[0];
-      const active = phaseHistory.find(p => !p.ended_at);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const active = phaseHistory.find(p => !p.ended_at);
 
-      if (active) {
-        await db.from('client_phase_history').update({ ended_at: today, restart_reason: reason }).eq('id', active.id);
-        active.ended_at = today;
-        active.restart_reason = reason;
+        if (active) {
+          const { error: closeErr } = await db.from('client_phase_history')
+            .update({ ended_at: today, restart_reason: reason })
+            .eq('id', active.id);
+          if (closeErr) throw closeErr;
+          active.ended_at = today;
+          active.restart_reason = reason;
+        }
+
+        const phase = active?.phase || clientData.current_phase;
+        const { data: newEntry, error: insertErr } = await db.from('client_phase_history').insert({
+          client_id:  clientId,
+          phase:      phase,
+          started_at: today,
+        }).select().single();
+        if (insertErr) throw insertErr;
+        if (newEntry) phaseHistory.unshift(newEntry);
+
+        const currentWeight = checkins.filter(c => c.weight_kg != null)[0]?.weight_kg ?? null;
+        const updates = { programme_start_date: today };
+        if (currentWeight) updates.start_weight = currentWeight;
+
+        const { error: updateErr } = await db.from('clients').update(updates).eq('id', clientId);
+        if (updateErr) throw updateErr;
+
+        clientData.programme_start_date = today;
+        if (currentWeight) clientData.start_weight = currentWeight;
+
+        closeRestartModal();
+        renderPage();
+      } catch (err) {
+        console.error('Restart failed:', err);
+        btn.textContent = 'Error — try again';
+        btn.disabled = false;
       }
-
-      const phase = active?.phase || clientData.current_phase;
-      const { data: newEntry } = await db.from('client_phase_history').insert({
-        client_id:  clientId,
-        phase:      phase,
-        started_at: today,
-      }).select().single();
-
-      if (newEntry) phaseHistory.unshift(newEntry);
-
-      // Reset programme start date so client is back at Day 1
-      // Also reset start_weight to current weight so goal progress measures from today
-      const currentWeight = checkins.filter(c => c.weight_kg != null)[0]?.weight_kg ?? null;
-      const updates = { programme_start_date: today };
-      if (currentWeight) updates.start_weight = currentWeight;
-      await db.from('clients').update(updates).eq('id', clientId);
-      clientData.programme_start_date = today;
-      if (currentWeight) clientData.start_weight = currentWeight;
-
-      closeRestartModal();
-      renderPage();
     }
 
     // ---- Assign Programme ----
