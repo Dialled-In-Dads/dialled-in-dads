@@ -1343,8 +1343,13 @@
       if (newEntry) phaseHistory.unshift(newEntry);
 
       // Reset programme start date so client is back at Day 1
-      await db.from('clients').update({ programme_start_date: today }).eq('id', clientId);
+      // Also reset start_weight to current weight so goal progress measures from today
+      const currentWeight = checkins.filter(c => c.weight_kg != null)[0]?.weight_kg ?? null;
+      const updates = { programme_start_date: today };
+      if (currentWeight) updates.start_weight = currentWeight;
+      await db.from('clients').update(updates).eq('id', clientId);
       clientData.programme_start_date = today;
+      if (currentWeight) clientData.start_weight = currentWeight;
 
       closeRestartModal();
       renderPage();
