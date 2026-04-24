@@ -627,6 +627,23 @@
     </div>
   </div>
 
+  <!-- Programme Assign/Restart Modal -->
+  <div class="coach-modal-overlay" id="prog-assign-modal" onclick="if(event.target===this)closeProgModal()">
+    <div class="coach-modal-box">
+      <div class="coach-modal-title" id="prog-modal-title">Assign Programme</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.5" id="prog-modal-desc"></p>
+      <div class="coach-form-group">
+        <label class="coach-form-label">Start from week beginning</label>
+        <input type="date" class="coach-form-input" id="prog-start-date">
+        <div style="font-size:11px;color:var(--subtle);margin-top:5px">Set to the Monday of the week you want the programme to begin. Day 1 = Mon, Day 5 = Fri etc.</div>
+      </div>
+      <div class="coach-modal-actions">
+        <button class="coach-btn-cancel" onclick="closeProgModal()">Cancel</button>
+        <button class="coach-btn-confirm" id="btn-confirm-prog" onclick="confirmProgAssign()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Restart Phase Modal -->
   <div class="coach-modal-overlay" id="restart-modal" onclick="if(event.target===this)closeRestartModal()">
     <div class="coach-modal-box">
@@ -1022,14 +1039,18 @@
                   ? '<div class="no-data">No programmes yet. <a href="programme.html" style="color:var(--orange)">Build one →</a></div>'
                   : programmes.map(p => {
                     const isActive = p.id === clientData.programme_id;
+                    const startedStr = isActive && clientData.programme_start_date
+                      ? `Started w/c ${formatDateShort(clientData.programme_start_date)}`
+                      : `${p.total_weeks || '—'} weeks`;
                     return `<div class="prog-item ${isActive ? 'active-prog' : ''}">
-                      <div>
+                      <div style="flex:1">
                         <div class="prog-name">${esc(p.name)}</div>
-                        <div class="prog-meta">${p.total_weeks || '—'} weeks</div>
+                        <div class="prog-meta">${startedStr}</div>
                       </div>
-                      <button class="btn-assign ${isActive ? 'active' : ''}" onclick="assignProgramme('${p.id}', '${esc(p.name)}')">
-                        ${isActive ? '✓ Active' : 'Assign'}
-                      </button>
+                      ${isActive
+                        ? `<button class="btn-assign active" onclick="openProgModal('${p.id}','${esc(p.name)}',true)" style="margin-right:6px">↺ Restart</button>`
+                        : `<button class="btn-assign" onclick="openProgModal('${p.id}','${esc(p.name)}',false)">Assign</button>`
+                      }
                     </div>`;
                   }).join('')
                 }
@@ -1374,36 +1395,58 @@
     }
 
     // ---- Assign Programme ----
-    async function assignProgramme(progId, progName) {
-      const { error } = await db.from('clients').update({
-        programme_id: progId,
-        programme_start_date: new Date().toISOString().split('T')[0],
-      }).eq('id', clientId);
+    // ---- Programme Modal ----
+    let progModalId   = null;
+    let progModalName = null;
 
-      if (!error) {
-        clientData.programme_id = progId;
-        // Re-render programme list
-        const list = document.getElementById('prog-list');
-        list.querySelectorAll('.prog-item').forEach(el => {
-          el.classList.remove('active-prog');
-          const btn = el.querySelector('.btn-assign');
-          if (btn) {
-            btn.classList.remove('active');
-            btn.textContent = 'Assign';
-          }
-        });
+    function getMondayOfWeek() {
+      const d = new Date();
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      return d.toISOString().split('T')[0];
+    }
 
-        // Find and activate the right item
-        const btns = list.querySelectorAll('.btn-assign');
-        btns.forEach((btn, i) => {
-          if (programmes[i]?.id === progId) {
-            btn.classList.add('active');
-            btn.textContent = '✓ Active';
-            btn.closest('.prog-item').classList.add('active-prog');
-          }
-        });
-      } else {
-        console.error(error);
+    function openProgModal(progId, progName, isRestart) {
+      progModalId   = progId;
+      progModalName = progName;
+      document.getElementById('prog-modal-title').textContent = isRestart ? `Restart ${progName}` : `Assign ${progName}`;
+      document.getElementById('prog-modal-desc').textContent  = isRestart
+        ? 'This resets the programme to Week 1. Set the Monday of the week you want to start from.'
+        : 'Set the Monday of the week the programme should begin.';
+      document.getElementById('prog-start-date').value = getMondayOfWeek();
+      document.getElementById('btn-confirm-prog').textContent = isRestart ? 'Restart' : 'Assign';
+      document.getElementById('prog-assign-modal').classList.add('open');
+    }
+
+    function closeProgModal() {
+      document.getElementById('prog-assign-modal').classList.remove('open');
+    }
+
+    async function confirmProgAssign() {
+      const btn       = document.getElementById('btn-confirm-prog');
+      const startDate = document.getElementById('prog-start-date').value;
+      if (!startDate) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const { error } = await db.from('clients').update({
+          programme_id:         progModalId,
+          programme_start_date: startDate,
+        }).eq('id', clientId);
+
+        if (error) throw error;
+
+        clientData.programme_id           = progModalId;
+        clientData.programme_start_date   = startDate;
+        closeProgModal();
+        renderPage();
+      } catch (err) {
+        console.error(err);
+        btn.textContent = 'Error — try again';
+        btn.disabled = false;
       }
     }
 
