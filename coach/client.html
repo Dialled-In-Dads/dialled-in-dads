@@ -1325,7 +1325,15 @@
       btn.textContent = 'Restarting…';
 
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const now    = new Date();
+        const today  = now.toISOString().split('T')[0];
+
+        // Anchor start date to Monday of this week so Day 1=Mon, Day 5=Fri etc line up correctly
+        const daysFromMonday = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        const monday = new Date(now);
+        monday.setDate(monday.getDate() - daysFromMonday);
+        const weekStartDate = monday.toISOString().split('T')[0];
+
         const active = phaseHistory.find(p => !p.ended_at);
 
         if (active) {
@@ -1347,13 +1355,13 @@
         if (newEntry) phaseHistory.unshift(newEntry);
 
         const currentWeight = checkins.filter(c => c.weight_kg != null)[0]?.weight_kg ?? null;
-        const updates = { programme_start_date: today };
+        const updates = { programme_start_date: weekStartDate };
         if (currentWeight) updates.start_weight = currentWeight;
 
         const { error: updateErr } = await db.from('clients').update(updates).eq('id', clientId);
         if (updateErr) throw updateErr;
 
-        clientData.programme_start_date = today;
+        clientData.programme_start_date = weekStartDate;
         if (currentWeight) clientData.start_weight = currentWeight;
 
         closeRestartModal();
