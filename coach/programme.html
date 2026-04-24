@@ -1065,6 +1065,22 @@
     </div>
   </div>
 
+  <!-- ===== MODAL: Rename Week ===== -->
+  <div class="modal-overlay" id="rename-week-modal">
+    <div class="modal">
+      <div class="modal-title">Rename Week</div>
+      <div class="modal-field">
+        <label class="modal-label">Week Label</label>
+        <input class="modal-input" id="rename-week-input" placeholder="e.g. Deload Week, Peak Week…">
+      </div>
+      <div class="modal-error" id="rename-week-error"></div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeModal('rename-week-modal')">Cancel</button>
+        <button class="btn-modal-save" id="rename-week-save-btn" onclick="saveRenameWeek()">Rename</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== EXERCISE PICKER MODAL ===== -->
   <div class="picker-modal" id="ex-picker-modal">
     <div class="picker-box">
@@ -1169,6 +1185,8 @@
     let selDay       = null;   // selected day object
     let blocks       = [];     // blocks for selDay
     let exercises    = {};     // { block_id: [exercises] }
+    let editProgId   = null;   // non-null when editing existing programme
+    let renameWeekId = null;   // week being renamed
 
     // ===== BOOT =====
     (async () => {
@@ -1201,7 +1219,9 @@
         <div class="prog-item ${selProg?.id === p.id ? 'active' : ''}" onclick="selectProg('${p.id}')">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
             <div class="prog-name" style="flex:1">${esc(p.name)}</div>
+            <button class="btn-copy-week" title="Rename programme" onclick="event.stopPropagation();openEditProgModal('${p.id}')">✏️</button>
             <button class="btn-copy-week" title="Copy programme" onclick="event.stopPropagation();copyProgramme('${p.id}')">⎘</button>
+            <button class="btn-del-week" title="Delete programme" onclick="event.stopPropagation();deleteProgramme('${p.id}')">×</button>
           </div>
           <div class="prog-meta">${p.total_weeks} weeks</div>
         </div>
@@ -1257,6 +1277,7 @@
           <div class="week-section">
             <div class="week-header ${isOpen ? 'open' : ''}" onclick="toggleWeek('${w.id}')">
               <span class="week-label">Week ${w.week_number}</span>
+              <button class="btn-copy-week" title="Rename week" onclick="event.stopPropagation();openRenameWeekModal('${w.id}')">✏️</button>
               <button class="btn-copy-week" title="Copy week" onclick="event.stopPropagation();copyWeek('${w.id}')">⎘</button>
               <button class="btn-del-week" title="Delete week" onclick="event.stopPropagation();deleteWeek('${w.id}')">×</button>
               <span class="week-chevron">▼</span>
@@ -1268,6 +1289,7 @@
                   <div class="day-name">${esc(d.label || (d.day_type === 'rest' ? 'Rest Day' : 'Workout'))}</div>
                   <div class="day-num">D${d.day_number}</div>
                   <button class="btn-copy-day" title="Copy day" onclick="event.stopPropagation();copyDay('${d.id}','${w.id}')">⎘</button>
+                  <button class="btn-del-week" title="Delete day" style="opacity:0" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0" onclick="event.stopPropagation();deleteDay('${d.id}','${w.id}')">×</button>
                 </div>
               `).join('')}
               <div style="padding:6px 8px">
@@ -2132,12 +2154,28 @@
       alert(`✓ "${selProg.name}" assigned to ${clientName} starting ${startDate}`);
     }
 
-    // ===== NEW PROGRAMME =====
+    // ===== NEW / EDIT PROGRAMME =====
     function openNewProgModal() {
+      editProgId = null;
       document.getElementById('prog-name').value  = '';
       document.getElementById('prog-desc').value  = '';
       document.getElementById('prog-weeks').value = '12';
       document.getElementById('prog-error').style.display = 'none';
+      document.querySelector('#prog-modal .modal-title').textContent = 'New Programme';
+      document.getElementById('prog-save-btn').textContent = 'Create Programme';
+      openModal('prog-modal');
+    }
+
+    function openEditProgModal(progId) {
+      const p = programmes.find(p => p.id === progId);
+      if (!p) return;
+      editProgId = progId;
+      document.getElementById('prog-name').value  = p.name || '';
+      document.getElementById('prog-desc').value  = p.description || '';
+      document.getElementById('prog-weeks').value = p.total_weeks || 12;
+      document.getElementById('prog-error').style.display = 'none';
+      document.querySelector('#prog-modal .modal-title').textContent = 'Edit Programme';
+      document.getElementById('prog-save-btn').textContent = 'Save Changes';
       openModal('prog-modal');
     }
 
@@ -2149,22 +2187,103 @@
 
       if (!name) { showModalError('prog-error', 'Programme name is required.'); return; }
 
-      btn.disabled = true; btn.textContent = 'Creating…';
+      btn.disabled = true;
+      btn.textContent = editProgId ? 'Saving…' : 'Creating…';
 
-      const { data, error } = await db.from('programmes').insert({
-        coach_id:    coachData.id,
-        name,
-        description: desc || null,
-        total_weeks: wks,
-      }).select().single();
+      if (editProgId) {
+        const { error } = await db.from('programmes').update({
+          name, description: desc || null, total_weeks: wks,
+        }).eq('id', editProgId);
 
-      if (error) { showModalError('prog-error', error.message); btn.disabled = false; btn.textContent = 'Create Programme'; return; }
+        if (error) { showModalError('prog-error', error.message); btn.disabled = false; btn.textContent = 'Save Changes'; return; }
 
-      programmes.push(data);
-      closeModal('prog-modal');
-      btn.disabled = false; btn.textContent = 'Create Programme';
+        const idx = programmes.findIndex(p => p.id === editProgId);
+        if (idx >= 0) Object.assign(programmes[idx], { name, description: desc || null, total_weeks: wks });
+        if (selProg?.id === editProgId) Object.assign(selProg, { name, description: desc || null, total_weeks: wks });
+
+        closeModal('prog-modal');
+        btn.disabled = false; btn.textContent = 'Save Changes';
+        renderProgList();
+        renderEditor();
+      } else {
+        const { data, error } = await db.from('programmes').insert({
+          coach_id: coachData.id, name, description: desc || null, total_weeks: wks,
+        }).select().single();
+
+        if (error) { showModalError('prog-error', error.message); btn.disabled = false; btn.textContent = 'Create Programme'; return; }
+
+        programmes.push(data);
+        closeModal('prog-modal');
+        btn.disabled = false; btn.textContent = 'Create Programme';
+        renderProgList();
+        await selectProg(data.id);
+      }
+    }
+
+    async function deleteProgramme(progId) {
+      const p = programmes.find(p => p.id === progId);
+      if (!confirm(`Delete "${p?.name}"? This will remove all weeks, days, and exercises. This cannot be undone.`)) return;
+
+      // Cascade: assignments → exercises → blocks → days → weeks → programme
+      await db.from('programme_assignments').delete().eq('programme_id', progId);
+      const { data: wks } = await db.from('programme_weeks').select('id').eq('programme_id', progId);
+      for (const w of (wks || [])) {
+        const { data: ds } = await db.from('programme_days').select('id').eq('week_id', w.id);
+        for (const d of (ds || [])) {
+          const { data: bks } = await db.from('workout_blocks').select('id').eq('day_id', d.id);
+          for (const b of (bks || [])) await db.from('block_exercises').delete().eq('block_id', b.id);
+          await db.from('workout_blocks').delete().eq('day_id', d.id);
+        }
+        await db.from('programme_days').delete().eq('week_id', w.id);
+        await db.from('programme_weeks').delete().eq('id', w.id);
+      }
+      await db.from('programmes').delete().eq('id', progId);
+
+      programmes = programmes.filter(p => p.id !== progId);
+      if (selProg?.id === progId) { selProg = null; selDay = null; weeks = []; days = {}; document.getElementById('add-week-btn').style.display = 'none'; renderEditor(); }
       renderProgList();
-      await selectProg(data.id);
+      document.getElementById('structure-panel').innerHTML = '<div class="panel-empty">Select a programme to view its structure.</div>';
+    }
+
+    // ===== RENAME WEEK =====
+    function openRenameWeekModal(weekId) {
+      renameWeekId = weekId;
+      const w = weeks.find(w => w.id === weekId);
+      document.getElementById('rename-week-input').value = w?.label || `Week ${w?.week_number || ''}`;
+      document.getElementById('rename-week-error').style.display = 'none';
+      openModal('rename-week-modal');
+      setTimeout(() => document.getElementById('rename-week-input').select(), 50);
+    }
+
+    async function saveRenameWeek() {
+      const btn   = document.getElementById('rename-week-save-btn');
+      const label = document.getElementById('rename-week-input').value.trim();
+      if (!label) { showModalError('rename-week-error', 'Please enter a label.'); return; }
+
+      btn.disabled = true; btn.textContent = 'Saving…';
+      const { error } = await db.from('programme_weeks').update({ label }).eq('id', renameWeekId);
+      if (error) { showModalError('rename-week-error', error.message); btn.disabled = false; btn.textContent = 'Rename'; return; }
+
+      const w = weeks.find(w => w.id === renameWeekId);
+      if (w) w.label = label;
+      closeModal('rename-week-modal');
+      btn.disabled = false; btn.textContent = 'Rename';
+      renderStructure();
+    }
+
+    // ===== DELETE DAY =====
+    async function deleteDay(dayId, weekId) {
+      const d = (days[weekId] || []).find(d => d.id === dayId);
+      if (!confirm(`Delete "${d?.label || 'this day'}"? All exercises will be removed.`)) return;
+
+      const { data: bks } = await db.from('workout_blocks').select('id').eq('day_id', dayId);
+      for (const b of (bks || [])) await db.from('block_exercises').delete().eq('block_id', b.id);
+      await db.from('workout_blocks').delete().eq('day_id', dayId);
+      await db.from('programme_days').delete().eq('id', dayId);
+
+      days[weekId] = (days[weekId] || []).filter(d => d.id !== dayId);
+      if (selDay?.id === dayId) { selDay = null; renderEditor(); }
+      renderStructure();
     }
 
     // ===== MODAL HELPERS =====

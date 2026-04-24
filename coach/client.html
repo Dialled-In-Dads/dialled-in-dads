@@ -627,6 +627,22 @@
     </div>
   </div>
 
+  <!-- Restart Phase Modal -->
+  <div class="coach-modal-overlay" id="restart-modal" onclick="if(event.target===this)closeRestartModal()">
+    <div class="coach-modal-box">
+      <div class="coach-modal-title">Restart <span id="restart-phase-name"></span></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5">This will close the current phase and start a fresh one from today. The programme resets to Day 1.</p>
+      <div class="coach-form-group">
+        <label class="coach-form-label">Reason <span style="color:var(--subtle);font-size:10px;text-transform:none">optional</span></label>
+        <textarea class="coach-form-textarea" id="restart-reason" placeholder="e.g. life got in the way, starting fresh…"></textarea>
+      </div>
+      <div class="coach-modal-actions">
+        <button class="coach-btn-cancel" onclick="closeRestartModal()">Cancel</button>
+        <button class="coach-btn-confirm" id="btn-confirm-restart" onclick="confirmRestart()">Restart from Today</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Coach Upload Modal -->
   <div class="coach-modal-overlay" id="coach-upload-modal" onclick="if(event.target===this)closeCoachUpload()">
     <div class="coach-modal-box">
@@ -681,6 +697,7 @@
     let programmes = [];
     let clientPhotos = [];
     let workoutSessions = [];
+    let phaseHistory = [];
 
     const STORAGE_URL = 'https://oboeavvjrtuzeovrjsht.supabase.co/storage/v1/object/public/progress-photos';
 
@@ -708,7 +725,7 @@
       clientData = client;
 
       // Parallel fetches
-      const [checkinsRes, progsRes, photosRes] = await Promise.all([
+      const [checkinsRes, progsRes, photosRes, phaseRes] = await Promise.all([
         db.from('check_ins')
           .select('*')
           .eq('client_id', clientId)
@@ -722,11 +739,16 @@
           .select('*')
           .eq('client_id', clientId)
           .order('taken_at', { ascending: false }),
+        db.from('client_phase_history')
+          .select('*')
+          .eq('client_id', clientId)
+          .order('started_at', { ascending: false }),
       ]);
 
       checkins      = checkinsRes.data || [];
       programmes    = progsRes.data    || [];
       clientPhotos  = photosRes.data   || [];
+      phaseHistory  = phaseRes.data    || [];
 
       // ---- Workout history: flat queries then join in JS ----
       const { data: rawLogs } = await db
@@ -951,14 +973,42 @@
                 <div class="card-title">Phase</div>
               </div>
               <div class="card-body">
-                <select class="phase-select" id="phase-select">
-                  <option value="">— Select Phase —</option>
-                  <option value="Cut" ${clientData.current_phase === 'Cut' ? 'selected' : ''}>Cut</option>
-                  <option value="Bulk" ${clientData.current_phase === 'Bulk' ? 'selected' : ''}>Bulk</option>
-                  <option value="Maintain" ${clientData.current_phase === 'Maintain' ? 'selected' : ''}>Maintain</option>
-                  <option value="Recomp" ${clientData.current_phase === 'Recomp' ? 'selected' : ''}>Recomp</option>
-                </select>
-                <button class="btn-save" id="btn-save-phase" onclick="savePhase()">Save Phase</button>
+                ${(() => {
+                  const active = phaseHistory.find(p => !p.ended_at);
+                  const past   = phaseHistory.filter(p => p.ended_at);
+                  return `
+                  ${active ? `
+                    <div style="background:rgba(193,88,26,0.08);border:1px solid rgba(193,88,26,0.2);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+                      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Current Phase</div>
+                      <div style="font-family:'Anton',sans-serif;font-size:20px;letter-spacing:0.5px;color:var(--orange)">${esc(active.phase)}</div>
+                      <div style="font-size:12px;color:var(--subtle);margin-top:3px">Started ${formatDate(active.started_at)}</div>
+                      <button onclick="openRestartModal()" style="margin-top:10px;width:100%;background:none;border:1px solid rgba(193,88,26,0.3);border-radius:8px;padding:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--orange);cursor:pointer;transition:border-color 0.15s,background 0.15s" onmouseover="this.style.background='rgba(193,88,26,0.1)'" onmouseout="this.style.background='none'">↺ Restart Phase from Today</button>
+                    </div>` : ''}
+                  <div style="font-size:11px;color:var(--muted);margin-bottom:6px;${active ? '' : 'margin-top:0'}">${active ? 'Change Phase' : 'Set Phase'}</div>
+                  <select class="phase-select" id="phase-select">
+                    <option value="">— Select Phase —</option>
+                    <option value="Cut" ${clientData.current_phase === 'Cut' ? 'selected' : ''}>Cut</option>
+                    <option value="Bulk" ${clientData.current_phase === 'Bulk' ? 'selected' : ''}>Bulk</option>
+                    <option value="Maintain" ${clientData.current_phase === 'Maintain' ? 'selected' : ''}>Maintain</option>
+                    <option value="Recomp" ${clientData.current_phase === 'Recomp' ? 'selected' : ''}>Recomp</option>
+                  </select>
+                  <button class="btn-save" id="btn-save-phase" onclick="savePhase()">Save Phase</button>
+                  ${past.length ? `
+                    <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+                      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Phase History</div>
+                      ${past.map(p => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                          <div>
+                            <div style="font-size:13px;font-weight:500">${esc(p.phase)}</div>
+                            ${p.restart_reason ? `<div style="font-size:11px;color:var(--subtle);margin-top:1px">${esc(p.restart_reason)}</div>` : ''}
+                          </div>
+                          <div style="text-align:right;font-size:11px;color:var(--subtle)">
+                            ${formatDateShort(p.started_at)} → ${formatDateShort(p.ended_at)}
+                          </div>
+                        </div>`).join('')}
+                    </div>` : ''}
+                  `;
+                })()}
               </div>
             </div>
 
@@ -1214,26 +1264,90 @@
     // ---- Save Phase ----
     async function savePhase() {
       const phase = document.getElementById('phase-select').value;
+      if (!phase) return;
       const btn = document.getElementById('btn-save-phase');
       btn.disabled = true;
       btn.textContent = 'Saving…';
 
-      const { error } = await db.from('clients').update({ current_phase: phase || null }).eq('id', clientId);
+      const today = new Date().toISOString().split('T')[0];
+
+      // Close any active phase in history
+      const active = phaseHistory.find(p => !p.ended_at);
+      if (active) {
+        await db.from('client_phase_history').update({ ended_at: today }).eq('id', active.id);
+        active.ended_at = today;
+      }
+
+      // Insert new phase history entry
+      const { data: newEntry, error: histErr } = await db.from('client_phase_history').insert({
+        client_id:  clientId,
+        phase:      phase,
+        started_at: today,
+      }).select().single();
+
+      if (!histErr && newEntry) phaseHistory.unshift(newEntry);
+
+      const { error } = await db.from('clients').update({ current_phase: phase }).eq('id', clientId);
 
       if (!error) {
-        clientData.current_phase = phase || null;
-        document.getElementById('phase-display').textContent = phase || 'No Phase';
+        clientData.current_phase = phase;
+        document.getElementById('phase-display').textContent = phase;
         btn.textContent = '✓ Saved';
         btn.classList.add('saved');
         setTimeout(() => {
           btn.textContent = 'Save Phase';
           btn.classList.remove('saved');
           btn.disabled = false;
-        }, 2000);
+          renderPage();
+        }, 1500);
       } else {
         btn.textContent = 'Error — try again';
         btn.disabled = false;
       }
+    }
+
+    // ---- Restart Phase ----
+    function openRestartModal() {
+      const active = phaseHistory.find(p => !p.ended_at);
+      document.getElementById('restart-phase-name').textContent = active ? active.phase : clientData.current_phase || 'phase';
+      document.getElementById('restart-reason').value = '';
+      document.getElementById('restart-modal').classList.add('open');
+    }
+
+    function closeRestartModal() {
+      document.getElementById('restart-modal').classList.remove('open');
+    }
+
+    async function confirmRestart() {
+      const btn = document.getElementById('btn-confirm-restart');
+      const reason = document.getElementById('restart-reason').value.trim() || null;
+      btn.disabled = true;
+      btn.textContent = 'Restarting…';
+
+      const today = new Date().toISOString().split('T')[0];
+      const active = phaseHistory.find(p => !p.ended_at);
+
+      if (active) {
+        await db.from('client_phase_history').update({ ended_at: today, restart_reason: reason }).eq('id', active.id);
+        active.ended_at = today;
+        active.restart_reason = reason;
+      }
+
+      const phase = active?.phase || clientData.current_phase;
+      const { data: newEntry } = await db.from('client_phase_history').insert({
+        client_id:  clientId,
+        phase:      phase,
+        started_at: today,
+      }).select().single();
+
+      if (newEntry) phaseHistory.unshift(newEntry);
+
+      // Reset programme start date so client is back at Day 1
+      await db.from('clients').update({ programme_start_date: today }).eq('id', clientId);
+      clientData.programme_start_date = today;
+
+      closeRestartModal();
+      renderPage();
     }
 
     // ---- Assign Programme ----
