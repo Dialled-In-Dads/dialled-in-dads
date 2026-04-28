@@ -647,7 +647,9 @@
       { name: 'Box Jump', muscle: 'Full Body' }, { name: 'Thruster', muscle: 'Full Body' },
     ];
 
-    const today     = new Date().toISOString().split('T')[0];
+    // Use local date (not UTC) so it's consistent with getDay() for day-of-week matching
+    const _now      = new Date();
+    const today     = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
     const DAY_MS    = 864e5;
 
     document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-GB', {

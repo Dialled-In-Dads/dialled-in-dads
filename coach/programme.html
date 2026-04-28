@@ -1052,15 +1052,29 @@
   <!-- ===== MODAL: Rename Day ===== -->
   <div class="modal-overlay" id="rename-day-modal">
     <div class="modal">
-      <div class="modal-title">Rename Workout</div>
-      <div class="modal-field">
-        <label class="modal-label">Workout Name</label>
-        <input class="modal-input" id="rename-day-input" placeholder="e.g. Push, Pull, Legs, Upper…">
+      <div class="modal-title">Edit Day</div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-label">Day of Week</label>
+          <select class="modal-select" id="rename-day-number">
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+            <option value="7">Sunday</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Workout Name</label>
+          <input class="modal-input" id="rename-day-input" placeholder="e.g. Push, Pull, Legs, Upper…">
+        </div>
       </div>
       <div class="modal-error" id="rename-day-error"></div>
       <div class="modal-actions">
         <button class="btn-modal-cancel" onclick="closeModal('rename-day-modal')">Cancel</button>
-        <button class="btn-modal-save" id="rename-day-save-btn" onclick="saveRenameDay()">Rename</button>
+        <button class="btn-modal-save" id="rename-day-save-btn" onclick="saveRenameDay()">Save</button>
       </div>
     </div>
   </div>
@@ -2180,34 +2194,37 @@
       renderEditor();
     }
 
-    // ===== RENAME DAY =====
+    // ===== EDIT DAY (label + day_number) =====
     function openRenameDayModal() {
       if (!selDay) return;
-      document.getElementById('rename-day-input').value = selDay.label || '';
+      document.getElementById('rename-day-input').value  = selDay.label || '';
+      document.getElementById('rename-day-number').value = selDay.day_number || 1;
       document.getElementById('rename-day-error').style.display = 'none';
       openModal('rename-day-modal');
       setTimeout(() => document.getElementById('rename-day-input').select(), 50);
     }
 
     async function saveRenameDay() {
-      const btn   = document.getElementById('rename-day-save-btn');
-      const label = document.getElementById('rename-day-input').value.trim();
+      const btn       = document.getElementById('rename-day-save-btn');
+      const label     = document.getElementById('rename-day-input').value.trim();
+      const dayNumber = parseInt(document.getElementById('rename-day-number').value);
       if (!label) { showModalError('rename-day-error', 'Please enter a name.'); return; }
 
       btn.disabled = true; btn.textContent = 'Saving…';
 
-      const { error } = await db.from('programme_days').update({ label }).eq('id', selDay.id);
-      if (error) { showModalError('rename-day-error', error.message); btn.disabled = false; btn.textContent = 'Rename'; return; }
+      const { error } = await db.from('programme_days').update({ label, day_number: dayNumber }).eq('id', selDay.id);
+      if (error) { showModalError('rename-day-error', error.message); btn.disabled = false; btn.textContent = 'Save'; return; }
 
-      selDay.label = label;
+      selDay.label      = label;
+      selDay.day_number = dayNumber;
       const weekDays = days[selDay.week_id];
       if (weekDays) {
         const idx = weekDays.findIndex(d => d.id === selDay.id);
-        if (idx >= 0) weekDays[idx].label = label;
+        if (idx >= 0) { weekDays[idx].label = label; weekDays[idx].day_number = dayNumber; }
       }
 
       closeModal('rename-day-modal');
-      btn.disabled = false; btn.textContent = 'Rename';
+      btn.disabled = false; btn.textContent = 'Save';
       renderStructure();
       renderEditor();
     }

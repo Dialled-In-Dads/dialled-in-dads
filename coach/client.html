@@ -1350,10 +1350,11 @@
         const today  = now.toISOString().split('T')[0];
 
         // Anchor start date to Monday of this week so Day 1=Mon, Day 5=Fri etc line up correctly
+        // Use local date string (not toISOString) to avoid UTC offset shifting the day
         const daysFromMonday = now.getDay() === 0 ? 6 : now.getDay() - 1;
         const monday = new Date(now);
         monday.setDate(monday.getDate() - daysFromMonday);
-        const weekStartDate = monday.toISOString().split('T')[0];
+        const weekStartDate = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
 
         const active = phaseHistory.find(p => !p.ended_at);
 
@@ -1404,7 +1405,8 @@
       const day = d.getDay();
       const diff = day === 0 ? -6 : 1 - day;
       d.setDate(d.getDate() + diff);
-      return d.toISOString().split('T')[0];
+      // Use local date string to avoid UTC offset shifting the day
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
     function openProgModal(progId, progName, isRestart) {
