@@ -2344,6 +2344,10 @@
       const p = programmes.find(p => p.id === progId);
       if (!confirm(`Delete "${p?.name}"? This will remove all weeks, days, and exercises. This cannot be undone.`)) return;
 
+      // Clear from any clients who have this as their active programme
+      await db.from('clients').update({ programme_id: null, programme_start_date: null })
+        .eq('programme_id', progId);
+
       // Cascade: assignments → exercises → blocks → days → weeks → programme
       await db.from('programme_assignments').delete().eq('programme_id', progId);
       const { data: wks } = await db.from('programme_weeks').select('id').eq('programme_id', progId);
