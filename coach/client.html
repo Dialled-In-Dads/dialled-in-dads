@@ -633,9 +633,9 @@
       <div class="coach-modal-title" id="prog-modal-title">Assign Programme</div>
       <p style="font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.5" id="prog-modal-desc"></p>
       <div class="coach-form-group">
-        <label class="coach-form-label">Start from week beginning</label>
+        <label class="coach-form-label">Day 1 starts on</label>
         <input type="date" class="coach-form-input" id="prog-start-date">
-        <div style="font-size:11px;color:var(--subtle);margin-top:5px">Set to the Monday of the week you want the programme to begin. Day 1 = Mon, Day 5 = Fri etc.</div>
+        <div style="font-size:11px;color:var(--subtle);margin-top:5px">Pick any date — the programme counts forward from here. Day 1 = this date, Day 2 = next day, etc.</div>
       </div>
       <div class="coach-modal-actions">
         <button class="coach-btn-cancel" onclick="closeProgModal()">Cancel</button>
@@ -1346,15 +1346,9 @@
       btn.textContent = 'Restarting…';
 
       try {
-        const now    = new Date();
-        const today  = now.toISOString().split('T')[0];
-
-        // Anchor start date to Monday of this week so Day 1=Mon, Day 5=Fri etc line up correctly
-        // Use local date string (not toISOString) to avoid UTC offset shifting the day
-        const daysFromMonday = now.getDay() === 0 ? 6 : now.getDay() - 1;
-        const monday = new Date(now);
-        monday.setDate(monday.getDate() - daysFromMonday);
-        const weekStartDate = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+        // Day 1 starts today — programme counts forward sequentially from here
+        const today         = localToday();
+        const weekStartDate = today;
 
         const active = phaseHistory.find(p => !p.ended_at);
 
@@ -1409,14 +1403,19 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
+    function localToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
     function openProgModal(progId, progName, isRestart) {
       progModalId   = progId;
       progModalName = progName;
       document.getElementById('prog-modal-title').textContent = isRestart ? `Restart ${progName}` : `Assign ${progName}`;
       document.getElementById('prog-modal-desc').textContent  = isRestart
-        ? 'This resets the programme to Week 1. Set the Monday of the week you want to start from.'
-        : 'Set the Monday of the week the programme should begin.';
-      document.getElementById('prog-start-date').value = getMondayOfWeek();
+        ? 'Resets to Day 1. Pick the date you want Day 1 to land on — can be any day of the week.'
+        : 'Pick the date Day 1 of the programme should land on — can be any day of the week.';
+      document.getElementById('prog-start-date').value = localToday();
       document.getElementById('btn-confirm-prog').textContent = isRestart ? 'Restart' : 'Assign';
       document.getElementById('prog-assign-modal').classList.add('open');
     }

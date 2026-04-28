@@ -706,24 +706,18 @@
 
       if (!allDays.length) { renderNoProgramme(); return; }
 
-      // Figure out which week of the programme we're in
-      const startDate    = new Date(assignment.start_date + 'T00:00:00');
-      const todayDate    = new Date(today + 'T00:00:00');
-      const daysElapsed  = Math.max(0, Math.round((todayDate - startDate) / DAY_MS));
-      const weeksElapsed = Math.floor(daysElapsed / 7);
+      // Sequential day matching: programme counts forward from start_date.
+      // Day 1 = start_date, Day 2 = start_date + 1, regardless of day of week.
+      const startDate   = new Date(assignment.start_date + 'T00:00:00');
+      const todayDate   = new Date(today + 'T00:00:00');
+      const daysElapsed = Math.max(0, Math.round((todayDate - startDate) / DAY_MS));
+      const dayIndex    = daysElapsed % allDays.length;
 
-      const uniqueWeekNums = [...new Set(allDays.map(d => d.week_number))].sort((a, b) => a - b);
-      const currentWeekNum = uniqueWeekNums[weeksElapsed % uniqueWeekNums.length];
-
-      // Match today's day of week to day_number (Mon=1 … Sun=7)
-      const jsDay       = new Date().getDay();
-      const todayDayNum = jsDay === 0 ? 7 : jsDay;
-
-      todayDay     = allDays.find(d => d.week_number === currentWeekNum && d.day_number === todayDayNum)
-                     || { id: null, day_type: 'rest', label: 'Rest Day', week_number: currentWeekNum, day_number: todayDayNum };
+      todayDay     = allDays[dayIndex];
       scheduledDay = todayDay;
 
-      // Week days for the current programme week
+      // Week days: show all days in the same programme week as today's day
+      const currentWeekNum = todayDay?.week_number;
       weekDays = allDays.filter(d => d.week_number === currentWeekNum);
 
       // Load today's blocks + exercises if workout day
