@@ -2350,10 +2350,13 @@
 
       // Cascade: assignments → exercises → blocks → days → weeks → programme
       await db.from('programme_assignments').delete().eq('programme_id', progId);
+
       const { data: wks } = await db.from('programme_weeks').select('id').eq('programme_id', progId);
       for (const w of (wks || [])) {
         const { data: ds } = await db.from('programme_days').select('id').eq('week_id', w.id);
         for (const d of (ds || [])) {
+          // Null out workout_log FK references before deleting the day (same as deleteDay)
+          await db.from('workout_logs').update({ programme_day_id: null }).eq('programme_day_id', d.id);
           const { data: bks } = await db.from('workout_blocks').select('id').eq('day_id', d.id);
           for (const b of (bks || [])) await db.from('block_exercises').delete().eq('block_id', b.id);
           await db.from('workout_blocks').delete().eq('day_id', d.id);
