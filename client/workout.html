@@ -1681,11 +1681,11 @@
           .from('workout_logs')
           .select(`
             id, log_date, completed_at,
-            programme_days (
+            programme_days!programme_day_id (
               id, label, day_number,
-              programme_weeks (
+              programme_weeks!week_id (
                 week_number,
-                programmes (id, name)
+                programmes!programme_id (id, name)
               )
             )
           `)
