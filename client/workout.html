@@ -1677,40 +1677,41 @@
       el.innerHTML = '<div class="loading-state">Loading history…</div>';
 
       if (!historyLogs) {
-        // Step 1: workout_logs + programme_days (1 level — reliable)
+        // 4 flat queries — no nested joins at all
         const { data: logs, error: logsErr } = await db
           .from('workout_logs')
-          .select(`
-            id, log_date, completed_at,
-            programme_days!programme_day_id (
-              id, label, day_number, week_id
-            )
-          `)
+          .select('id, log_date, completed_at, programme_day_id')
           .eq('client_id', clientData.id)
           .order('log_date', { ascending: false });
 
         if (logsErr) { el.innerHTML = '<div class="loading-state">Error loading history.</div>'; return; }
 
-        // Step 2: fetch week + programme for all referenced week_ids
-        const weekIds = [...new Set(
-          (logs || []).filter(l => l.programme_days?.week_id).map(l => l.programme_days.week_id)
-        )];
+        const dayIds = [...new Set((logs || []).filter(l => l.programme_day_id).map(l => l.programme_day_id))];
+        const { data: pDays } = dayIds.length
+          ? await db.from('programme_days').select('id, label, day_number, week_id').in('id', dayIds)
+          : { data: [] };
 
-        const weekLookup = {};
-        if (weekIds.length) {
-          const { data: weeks } = await db
-            .from('programme_weeks')
-            .select('id, week_number, programmes!programme_id(id, name)')
-            .in('id', weekIds);
-          (weeks || []).forEach(w => { weekLookup[w.id] = w; });
-        }
+        const weekIds = [...new Set((pDays || []).filter(d => d.week_id).map(d => d.week_id))];
+        const { data: pWeeks } = weekIds.length
+          ? await db.from('programme_weeks').select('id, week_number, programme_id').in('id', weekIds)
+          : { data: [] };
 
-        // Merge week/programme into each log as _week
+        const progIds = [...new Set((pWeeks || []).filter(w => w.programme_id).map(w => w.programme_id))];
+        const { data: progs } = progIds.length
+          ? await db.from('programmes').select('id, name').in('id', progIds)
+          : { data: [] };
+
+        // Build lookups
+        const dayMap  = Object.fromEntries((pDays  || []).map(d => [d.id, d]));
+        const weekMap = Object.fromEntries((pWeeks || []).map(w => [w.id, w]));
+        const progMap = Object.fromEntries((progs  || []).map(p => [p.id, p]));
+
+        // Assemble historyLogs with full context
         historyLogs = (logs || []).map(l => {
-          if (l.programme_days?.week_id) {
-            l.programme_days._week = weekLookup[l.programme_days.week_id] || null;
-          }
-          return l;
+          const day  = l.programme_day_id ? dayMap[l.programme_day_id]   : null;
+          const week = day?.week_id        ? weekMap[day.week_id]          : null;
+          const prog = week?.programme_id  ? progMap[week.programme_id]   : null;
+          return { ...l, _day: day, _week: week, _prog: prog };
         });
       }
 
@@ -1722,16 +1723,15 @@
         return;
       }
 
-      const progLogs = historyLogs.filter(l => l.programme_days?._week);
-      const freeLogs = historyLogs.filter(l => !l.programme_days?._week);
+      const progLogs = historyLogs.filter(l => l._prog);
+      const freeLogs = historyLogs.filter(l => !l._prog);
 
       // Group programme logs: programme → week number → sessions
       const byProg = {};
       progLogs.forEach(log => {
-        const week = log.programme_days._week;
-        const prog = week.programmes;
+        const prog = log._prog;
+        const wk   = log._week?.week_number;
         if (!byProg[prog.id]) byProg[prog.id] = { id: prog.id, name: prog.name, weeks: {} };
-        const wk = week.week_number;
         if (!byProg[prog.id].weeks[wk]) byProg[prog.id].weeks[wk] = [];
         byProg[prog.id].weeks[wk].push(log);
       });
@@ -1764,7 +1764,7 @@
 
     function buildWeekFolder(key, label, logs, isOpen, isFree = false) {
       const rows = logs.map(log => {
-        const name = isFree ? 'Free Session' : esc(log.programme_days?.label || 'Workout');
+        const name = isFree ? 'Free Session' : esc(log._day?.label || 'Workout');
         return `<div class="hist-session-row" onclick="openSessionDetail('${log.id}')">
           <div class="hist-session-name">${name}</div>
           <div class="hist-session-date">${histDate(log.log_date)}</div>
@@ -1809,9 +1809,8 @@
       // Populate header from cached history data
       const log = (historyLogs || []).find(l => l.id === logId);
       if (log) {
-        const pd = log.programme_days;
-        titleEl.textContent = pd?.label || 'Free Session';
-        const wk = pd?._week?.week_number;
+        titleEl.textContent = log._day?.label || 'Free Session';
+        const wk = log._week?.week_number;
         subEl.textContent = (wk ? `Week ${wk} · ` : '') + histDate(log.log_date);
       }
 
@@ -1952,8 +1951,8 @@
       (historyLogs || []).forEach(l => {
         logLookup[l.id] = {
           date:    l.log_date,
-          weekNum: l.programme_days?._week?.week_number,
-          label:   l.programme_days?.label,
+          weekNum: l._week?.week_number,
+          label:   l._day?.label,
         };
       });
 
