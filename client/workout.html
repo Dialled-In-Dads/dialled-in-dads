@@ -1677,7 +1677,7 @@
       el.innerHTML = '<div class="loading-state">Loading history…</div>';
 
       if (!historyLogs) {
-        // 4 flat queries — no nested joins at all
+        // One query only — everything else comes from already-loaded allDays + programme
         const { data: logs, error: logsErr } = await db
           .from('workout_logs')
           .select('id, log_date, completed_at, programme_day_id')
@@ -1686,32 +1686,17 @@
 
         if (logsErr) { el.innerHTML = '<div class="loading-state">Error loading history.</div>'; return; }
 
-        const dayIds = [...new Set((logs || []).filter(l => l.programme_day_id).map(l => l.programme_day_id))];
-        const { data: pDays } = dayIds.length
-          ? await db.from('programme_days').select('id, label, day_number, week_id').in('id', dayIds)
-          : { data: [] };
+        // allDays already has week_number merged in from boot — no extra queries needed
+        const dayLookup = Object.fromEntries((allDays || []).map(d => [d.id, d]));
 
-        const weekIds = [...new Set((pDays || []).filter(d => d.week_id).map(d => d.week_id))];
-        const { data: pWeeks } = weekIds.length
-          ? await db.from('programme_weeks').select('id, week_number, programme_id').in('id', weekIds)
-          : { data: [] };
-
-        const progIds = [...new Set((pWeeks || []).filter(w => w.programme_id).map(w => w.programme_id))];
-        const { data: progs } = progIds.length
-          ? await db.from('programmes').select('id, name').in('id', progIds)
-          : { data: [] };
-
-        // Build lookups
-        const dayMap  = Object.fromEntries((pDays  || []).map(d => [d.id, d]));
-        const weekMap = Object.fromEntries((pWeeks || []).map(w => [w.id, w]));
-        const progMap = Object.fromEntries((progs  || []).map(p => [p.id, p]));
-
-        // Assemble historyLogs with full context
         historyLogs = (logs || []).map(l => {
-          const day  = l.programme_day_id ? dayMap[l.programme_day_id]   : null;
-          const week = day?.week_id        ? weekMap[day.week_id]          : null;
-          const prog = week?.programme_id  ? progMap[week.programme_id]   : null;
-          return { ...l, _day: day, _week: week, _prog: prog };
+          const day = l.programme_day_id ? dayLookup[l.programme_day_id] : null;
+          return {
+            ...l,
+            _day:  day ? { label: day.label, day_number: day.day_number } : null,
+            _week: day ? { week_number: day.week_number }                  : null,
+            _prog: day && programme ? { id: programme.id, name: programme.name } : null,
+          };
         });
       }
 
