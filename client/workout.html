@@ -505,6 +505,97 @@
     .nav-label { font-size: 10px; font-weight: 500; color: var(--subtle); letter-spacing: 0.2px; }
     .nav-item.active svg { stroke: var(--orange); }
     .nav-item.active .nav-label { color: var(--orange); }
+
+    /* ---- History tab ---- */
+    .hist-prog { margin-bottom: 20px; }
+
+    .hist-prog-name {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 0 2px 10px; margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hist-week { margin-bottom: 6px; }
+
+    .hist-week-hdr {
+      display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text);
+      -webkit-tap-highlight-color: transparent; transition: border-color 0.15s;
+    }
+
+    .hist-week-hdr.open { border-radius: 12px 12px 0 0; border-color: rgba(193,88,26,0.5); }
+
+    .hist-week-count { margin-left: auto; font-size: 11px; color: var(--subtle); font-weight: 400; }
+
+    .hist-chevron { font-size: 10px; color: var(--subtle); transition: transform 0.2s; }
+    .hist-week-hdr.open .hist-chevron { transform: rotate(180deg); }
+
+    .hist-sessions {
+      display: none; border: 1px solid rgba(193,88,26,0.5); border-top: none;
+      border-radius: 0 0 12px 12px; overflow: hidden;
+    }
+    .hist-sessions.open { display: block; }
+
+    .hist-session-row {
+      display: flex; align-items: center; gap: 10px; padding: 13px 14px;
+      border-bottom: 1px solid var(--border); cursor: pointer;
+      -webkit-tap-highlight-color: transparent; transition: background 0.1s;
+    }
+    .hist-session-row:last-child { border-bottom: none; }
+    .hist-session-row:active { background: rgba(255,255,255,0.04); }
+
+    .hist-session-name { font-size: 14px; font-weight: 500; flex: 1; }
+    .hist-session-date { font-size: 12px; color: var(--muted); }
+
+    /* ---- Session detail (sheet content) ---- */
+    .sdetail-wrap { padding: 12px 16px 24px; }
+
+    .session-ex-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    }
+    .session-ex-card.tappable { cursor: pointer; transition: border-color 0.15s; }
+    .session-ex-card.tappable:active { border-color: var(--blue); }
+
+    .session-ex-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+    .session-ex-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+
+    .ssets-hdr {
+      display: grid; grid-template-columns: 28px 1fr 1fr 1fr; gap: 8px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
+    }
+    .ssets-hdr span {
+      font-size: 10px; font-weight: 600; color: var(--subtle);
+      text-transform: uppercase; letter-spacing: 0.5px; text-align: center;
+    }
+    .sset-row {
+      display: grid; grid-template-columns: 28px 1fr 1fr 1fr; gap: 8px;
+      align-items: center; padding: 5px 0; font-size: 13px; text-align: center;
+      border-bottom: 1px solid rgba(30,42,62,0.5);
+    }
+    .sset-row:last-child { border-bottom: none; }
+    .sset-num { color: var(--subtle); font-size: 11px; font-weight: 600; }
+
+    /* ---- Exercise history (within session detail sheet) ---- */
+    .exhist-session {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    }
+    .exhist-session-hdr {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+    .exhist-date { font-size: 13px; font-weight: 600; }
+    .exhist-week { font-size: 11px; color: var(--muted); }
+
+    .btn-back {
+      background: none; border: none; color: var(--muted); font-size: 22px;
+      cursor: pointer; padding: 0 8px 0 0; line-height: 1;
+      -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+    }
+    .btn-back:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -520,9 +611,10 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <div class="tab active" id="tab-today"    onclick="switchTab('today')">Today</div>
-    <div class="tab"        id="tab-week"     onclick="switchTab('week')">This Week</div>
-    <div class="tab"        id="tab-plan"     onclick="switchTab('plan')">Full Plan</div>
+    <div class="tab active" id="tab-today"   onclick="switchTab('today')">Today</div>
+    <div class="tab"        id="tab-week"    onclick="switchTab('week')">This Week</div>
+    <div class="tab"        id="tab-plan"    onclick="switchTab('plan')">Full Plan</div>
+    <div class="tab"        id="tab-history" onclick="switchTab('history')">History</div>
   </div>
 
   <div class="content" id="main-content">
@@ -563,6 +655,23 @@
     </div>
   </div>
 
+  <!-- Session Detail Sheet (also hosts exercise history view) -->
+  <div class="sheet-overlay" id="session-detail-sheet" onclick="if(event.target===this)closeSessionDetail()">
+    <div class="sheet">
+      <div class="sheet-header">
+        <div style="display:flex;align-items:center;flex:1;min-width:0">
+          <button class="btn-back" id="session-back-btn" onclick="goBackToSession()" style="display:none">‹</button>
+          <div style="min-width:0">
+            <div class="sheet-title" id="session-detail-title" style="font-size:16px">Session</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:1px" id="session-detail-subtitle"></div>
+          </div>
+        </div>
+        <button class="sheet-close" onclick="closeSessionDetail()">✕</button>
+      </div>
+      <div class="sheet-body" id="session-detail-body"></div>
+    </div>
+  </div>
+
   <!-- Bottom Nav -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
@@ -585,6 +694,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script>
 
     // ===== STATE =====
@@ -606,6 +716,10 @@
     let freeLoggedSets = {};    // {tempId: {setNum: row}}
     let freeExSelected = null;
     let freeExCounter  = 0;
+    let historyLogs       = null;   // null = not yet loaded
+    let historyOpen       = {};     // { key: bool } folder expansion
+    let sessionDetailLogId = null;  // logId of currently viewed session
+    let exHistoryChart    = null;   // Chart.js instance
 
     const FREE_EX_LIBRARY = [
       { name: 'Bench Press', muscle: 'Chest' }, { name: 'Incline Bench Press', muscle: 'Chest' },
@@ -795,7 +909,7 @@
     // ===== TABS =====
     function switchTab(tab) {
       activeTab = tab;
-      ['today','week','plan'].forEach(t => {
+      ['today','week','plan','history'].forEach(t => {
         document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
       });
       renderTab();
@@ -804,7 +918,8 @@
     function renderTab() {
       if (activeTab === 'today') renderToday();
       else if (activeTab === 'week') renderWeek();
-      else renderPlan();
+      else if (activeTab === 'plan') renderPlan();
+      else renderHistory();
     }
 
     // ===== TODAY TAB =====
@@ -1554,6 +1669,371 @@
       return String(s || '')
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ===== HISTORY TAB =====
+    async function renderHistory() {
+      const el = document.getElementById('main-content');
+      el.innerHTML = '<div class="loading-state">Loading history…</div>';
+
+      if (!historyLogs) {
+        const { data, error } = await db
+          .from('workout_logs')
+          .select(`
+            id, log_date, completed_at,
+            programme_days (
+              id, label, day_number,
+              programme_weeks (
+                week_number,
+                programmes (id, name)
+              )
+            )
+          `)
+          .eq('client_id', clientData.id)
+          .order('log_date', { ascending: false });
+
+        if (error) { el.innerHTML = '<div class="loading-state">Error loading history.</div>'; return; }
+        historyLogs = data || [];
+      }
+
+      if (!historyLogs.length) {
+        el.innerHTML = `<div class="card"><div class="no-prog">
+          <p style="font-size:36px;margin-bottom:12px">📋</p>
+          <p>No workouts logged yet.<br>Complete your first workout to build your history.</p>
+        </div></div>`;
+        return;
+      }
+
+      const progLogs = historyLogs.filter(l => l.programme_days);
+      const freeLogs = historyLogs.filter(l => !l.programme_days);
+
+      // Group programme logs: programme → week number → sessions
+      const byProg = {};
+      progLogs.forEach(log => {
+        const pw   = log.programme_days.programme_weeks;
+        const prog = pw.programmes;
+        if (!byProg[prog.id]) byProg[prog.id] = { id: prog.id, name: prog.name, weeks: {} };
+        const wk = pw.week_number;
+        if (!byProg[prog.id].weeks[wk]) byProg[prog.id].weeks[wk] = [];
+        byProg[prog.id].weeks[wk].push(log);
+      });
+
+      let html = '';
+
+      Object.values(byProg).forEach(prog => {
+        html += `<div class="hist-prog">
+          <div class="hist-prog-name">${esc(prog.name)}</div>`;
+
+        Object.entries(prog.weeks)
+          .sort(([a], [b]) => parseInt(b) - parseInt(a))
+          .forEach(([wk, logs]) => {
+            const key = `${prog.id}-w${wk}`;
+            html += buildWeekFolder(key, `Week ${wk}`, logs, false);
+          });
+
+        html += `</div>`;
+      });
+
+      if (freeLogs.length) {
+        html += `<div class="hist-prog">
+          <div class="hist-prog-name">Free Sessions</div>
+          ${buildWeekFolder('free', 'All sessions', freeLogs, false, true)}
+        </div>`;
+      }
+
+      el.innerHTML = html || '<div class="card"><div class="no-prog"><p>No workouts logged yet.</p></div></div>';
+    }
+
+    function buildWeekFolder(key, label, logs, isOpen, isFree = false) {
+      const rows = logs.map(log => {
+        const name = isFree ? 'Free Session' : esc(log.programme_days?.label || 'Workout');
+        return `<div class="hist-session-row" onclick="openSessionDetail('${log.id}')">
+          <div class="hist-session-name">${name}</div>
+          <div class="hist-session-date">${histDate(log.log_date)}</div>
+          <div style="color:var(--subtle);font-size:14px">›</div>
+        </div>`;
+      }).join('');
+
+      return `<div class="hist-week">
+        <div class="hist-week-hdr ${isOpen ? 'open' : ''}" onclick="toggleHistWeek('${key}')">
+          <span>${label}</span>
+          <span class="hist-week-count">${logs.length} session${logs.length !== 1 ? 's' : ''}</span>
+          <span class="hist-chevron">▼</span>
+        </div>
+        <div class="hist-sessions ${isOpen ? 'open' : ''}">${rows}</div>
+      </div>`;
+    }
+
+    function toggleHistWeek(key) {
+      historyOpen[key] = !historyOpen[key];
+      renderHistory();
+    }
+
+    function histDate(d) {
+      return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric'
+      });
+    }
+
+    // ===== SESSION DETAIL =====
+    async function openSessionDetail(logId) {
+      sessionDetailLogId = logId;
+      const sheet   = document.getElementById('session-detail-sheet');
+      const body    = document.getElementById('session-detail-body');
+      const titleEl = document.getElementById('session-detail-title');
+      const subEl   = document.getElementById('session-detail-subtitle');
+      const backBtn = document.getElementById('session-back-btn');
+
+      backBtn.style.display = 'none';
+      body.innerHTML = '<div class="loading-state">Loading session…</div>';
+      sheet.classList.add('open');
+
+      // Populate header from cached history data
+      const log = (historyLogs || []).find(l => l.id === logId);
+      if (log) {
+        const pd = log.programme_days;
+        titleEl.textContent = pd?.label || 'Free Session';
+        const wk = pd?.programme_weeks?.week_number;
+        subEl.textContent = (wk ? `Week ${wk} · ` : '') + histDate(log.log_date);
+      }
+
+      const { data: sets, error } = await db
+        .from('set_logs')
+        .select(`
+          id, set_number, weight_kg, reps_completed, e1rm, exercise_name,
+          block_exercise_id,
+          block_exercises (
+            id, exercise_name, muscle_group, weight_type,
+            workout_blocks (tier)
+          )
+        `)
+        .eq('workout_log_id', logId);
+
+      if (error || !sets?.length) {
+        body.innerHTML = '<div style="padding:32px 20px;text-align:center;color:var(--muted);font-size:14px">No exercises logged in this session.</div>';
+        return;
+      }
+
+      // Group sets by exercise
+      const byEx = {};
+      sets.forEach(s => {
+        const key  = s.block_exercise_id || ('f-' + (s.exercise_name || 'ex'));
+        const name = s.block_exercises?.exercise_name || s.exercise_name || 'Exercise';
+        const tier = (s.block_exercises?.workout_blocks?.tier || '').toLowerCase() || null;
+        if (!byEx[key]) byEx[key] = {
+          id: s.block_exercise_id, name, tier,
+          muscle:     s.block_exercises?.muscle_group || null,
+          weightType: s.block_exercises?.weight_type || 'kg',
+          sets: []
+        };
+        byEx[key].sets.push(s);
+      });
+      Object.values(byEx).forEach(ex => ex.sets.sort((a, b) => a.set_number - b.set_number));
+
+      const tierOrder = ['win', 'bonus', 'extra'];
+      const grouped   = {};
+      Object.values(byEx).forEach(ex => {
+        const t = tierOrder.includes(ex.tier) ? ex.tier : 'free';
+        if (!grouped[t]) grouped[t] = [];
+        grouped[t].push(ex);
+      });
+
+      let html = '<div class="sdetail-wrap">';
+      [...tierOrder, 'free'].forEach(tier => {
+        const exs = grouped[tier] || [];
+        if (!exs.length) return;
+        if (tier !== 'free') {
+          html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span class="tier-badge ${tier}">${tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
+          </div>`;
+        }
+        exs.forEach(ex => { html += buildSessionExCard(ex); });
+      });
+      html += '</div>';
+
+      body.innerHTML = html;
+    }
+
+    function buildSessionExCard(ex) {
+      const hasHistory = !!ex.id;
+      const isBWBand   = ex.weightType === 'bw' || ex.weightType === 'band';
+      const wtLabel    = ex.weightType === 'bw' ? 'BW' : ex.weightType === 'band' ? 'Band' : null;
+
+      const clickAttr = hasHistory
+        ? `onclick="openExerciseHistory('${ex.id}', '${ex.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"` : '';
+
+      let setsHtml = `<div class="ssets-hdr">
+        <span>Set</span><span>${wtLabel || 'Weight'}</span><span>Reps</span><span>e1RM</span>
+      </div>`;
+
+      ex.sets.forEach(s => {
+        const wt   = wtLabel || (s.weight_kg != null ? s.weight_kg + 'kg' : '—');
+        const rps  = s.reps_completed ?? '—';
+        const e1rm = s.e1rm ? s.e1rm + 'kg' : '—';
+        setsHtml += `<div class="sset-row">
+          <span class="sset-num">${s.set_number}</span>
+          <span>${wt}</span><span>${rps}</span>
+          <span style="color:var(--green)">${e1rm}</span>
+        </div>`;
+      });
+
+      return `<div class="session-ex-card ${hasHistory ? 'tappable' : ''}" ${clickAttr}>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div class="session-ex-name">${esc(ex.name)}</div>
+            ${ex.muscle ? `<div class="session-ex-meta">${esc(ex.muscle)}</div>` : ''}
+          </div>
+          ${hasHistory ? `<div style="font-size:11px;color:var(--blue);padding-top:3px">History ›</div>` : ''}
+        </div>
+        ${setsHtml}
+      </div>`;
+    }
+
+    function closeSessionDetail() {
+      document.getElementById('session-detail-sheet').classList.remove('open');
+      if (exHistoryChart) { exHistoryChart.destroy(); exHistoryChart = null; }
+    }
+
+    function goBackToSession() {
+      if (sessionDetailLogId) openSessionDetail(sessionDetailLogId);
+    }
+
+    // ===== EXERCISE HISTORY =====
+    async function openExerciseHistory(exerciseId, exerciseName) {
+      const body    = document.getElementById('session-detail-body');
+      const titleEl = document.getElementById('session-detail-title');
+      const subEl   = document.getElementById('session-detail-subtitle');
+      const backBtn = document.getElementById('session-back-btn');
+
+      backBtn.style.display = 'block';
+      titleEl.textContent = exerciseName;
+      subEl.textContent   = 'Exercise History';
+      body.innerHTML = '<div class="loading-state">Loading…</div>';
+
+      if (exHistoryChart) { exHistoryChart.destroy(); exHistoryChart = null; }
+
+      const logIds = (historyLogs || []).map(l => l.id);
+      if (!logIds.length) {
+        body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">No history yet.</div>';
+        return;
+      }
+
+      const { data: sets, error } = await db
+        .from('set_logs')
+        .select('set_number, weight_kg, reps_completed, e1rm, workout_log_id')
+        .eq('block_exercise_id', exerciseId)
+        .in('workout_log_id', logIds);
+
+      if (error || !sets?.length) {
+        body.innerHTML = '<div style="padding:32px 20px;text-align:center;color:var(--muted);font-size:14px">No previous sessions found for this exercise.</div>';
+        return;
+      }
+
+      // Build log lookup from cached history data
+      const logLookup = {};
+      (historyLogs || []).forEach(l => {
+        logLookup[l.id] = {
+          date:    l.log_date,
+          weekNum: l.programme_days?.programme_weeks?.week_number,
+          label:   l.programme_days?.label,
+        };
+      });
+
+      // Group by session, sort sets within each
+      const bySession = {};
+      sets.forEach(s => {
+        if (!bySession[s.workout_log_id]) bySession[s.workout_log_id] = [];
+        bySession[s.workout_log_id].push(s);
+      });
+      Object.values(bySession).forEach(ss => ss.sort((a, b) => a.set_number - b.set_number));
+
+      // Build sorted sessions array (oldest first for chart, newest first for list)
+      const sessions = Object.entries(bySession).map(([lid, ss]) => {
+        const info   = logLookup[lid] || {};
+        const e1rms  = ss.filter(s => s.e1rm).map(s => s.e1rm);
+        const bestE1 = e1rms.length ? Math.max(...e1rms) : null;
+        return { logId: lid, date: info.date || '', weekNum: info.weekNum, label: info.label, sets: ss, bestE1 };
+      }).sort((a, b) => a.date > b.date ? 1 : -1);
+
+      const hasE1rm = sessions.some(s => s.bestE1 != null);
+
+      let html = '<div class="sdetail-wrap">';
+
+      if (sessions.length >= 2 && hasE1rm) {
+        html += `<div style="margin-bottom:16px;position:relative;height:150px"><canvas id="ex-hist-chart"></canvas></div>`;
+      } else if (sessions.length === 1) {
+        html += `<div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:14px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px">Log this exercise again to see your progression chart</div>`;
+      }
+
+      // List sessions newest-first for easy reading
+      [...sessions].reverse().forEach(session => {
+        const wk = session.weekNum ? `Week ${session.weekNum}` : (session.label || 'Free Session');
+        html += `<div class="exhist-session">
+          <div class="exhist-session-hdr">
+            <span class="exhist-date">${histDate(session.date)}</span>
+            <span class="exhist-week">${wk}</span>
+          </div>
+          <div class="ssets-hdr">
+            <span>Set</span><span>Weight</span><span>Reps</span><span>e1RM</span>
+          </div>
+          ${session.sets.map(s => `
+            <div class="sset-row">
+              <span class="sset-num">${s.set_number}</span>
+              <span>${s.weight_kg != null ? s.weight_kg + 'kg' : '—'}</span>
+              <span>${s.reps_completed ?? '—'}</span>
+              <span style="color:var(--green)">${s.e1rm ? s.e1rm + 'kg' : '—'}</span>
+            </div>
+          `).join('')}
+        </div>`;
+      });
+
+      html += '</div>';
+      body.innerHTML = html;
+
+      // Draw chart after DOM update (oldest→newest = left→right = clear progression)
+      if (sessions.length >= 2 && hasE1rm && typeof Chart !== 'undefined') {
+        const ctx = document.getElementById('ex-hist-chart')?.getContext('2d');
+        if (ctx) {
+          exHistoryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: sessions.map(s => {
+                const d = new Date(s.date + 'T00:00:00');
+                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+              }),
+              datasets: [{
+                data:                 sessions.map(s => s.bestE1),
+                borderColor:          '#2ECC8A',
+                backgroundColor:      'rgba(46,204,138,0.08)',
+                borderWidth:          2,
+                pointBackgroundColor: '#2ECC8A',
+                pointRadius:          4,
+                tension:              0.3,
+                fill:                 true,
+                spanGaps:             true,
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => c.parsed.y + 'kg e1RM' } },
+              },
+              scales: {
+                x: {
+                  ticks: { color: '#4A5568', font: { size: 10 }, maxRotation: 40 },
+                  grid:  { color: '#1E2A3E' },
+                },
+                y: {
+                  ticks: { color: '#4A5568', font: { size: 10 }, callback: v => v + 'kg' },
+                  grid:  { color: '#1E2A3E' },
+                }
+              }
+            }
+          });
+        }
+      }
     }
   </script>
 
