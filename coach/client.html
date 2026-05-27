@@ -593,6 +593,44 @@
     .coach-btn-confirm { flex: 2; padding: 11px; background: var(--orange); border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; transition: background 0.15s; }
     .coach-btn-confirm:hover:not(:disabled) { background: #D4651F; }
     .coach-btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---- Coach Workout History — hierarchical ---- */
+    .coach-hist-week { margin-bottom: 6px; }
+    .coach-hist-week-hdr {
+      display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text);
+      transition: border-color 0.15s; user-select: none;
+    }
+    .coach-hist-week-hdr:hover { border-color: rgba(193,88,26,0.3); }
+    .coach-hist-week-hdr.open { border-radius: 10px 10px 0 0; border-color: rgba(193,88,26,0.4); }
+    .coach-hist-wk-count { margin-left: auto; font-size: 11px; color: var(--subtle); font-weight: 400; }
+    .coach-hist-chevron { font-size: 10px; color: var(--subtle); transition: transform 0.2s; }
+    .coach-hist-week-hdr.open .coach-hist-chevron { transform: rotate(180deg); }
+    .coach-hist-sessions {
+      display: none; border: 1px solid rgba(193,88,26,0.4); border-top: none;
+      border-radius: 0 0 10px 10px; overflow: hidden;
+    }
+    .coach-hist-sessions.open { display: block; }
+    .coach-hist-session-row {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+      border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s;
+    }
+    .coach-hist-session-row:last-child { border-bottom: none; }
+    .coach-hist-session-row:hover { background: rgba(255,255,255,0.03); }
+
+    /* ---- Coach Session Detail Modal (wider) ---- */
+    .coach-session-modal-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 24px; width: 740px; max-width: 95vw; max-height: 85vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .coach-session-ex-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px; margin-bottom: 10px;
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    .coach-session-ex-card:hover { border-color: var(--blue); }
   </style>
 </head>
 <body>
@@ -705,8 +743,26 @@
     </div>
   </div>
 
+  <!-- Coach Session Detail Modal -->
+  <div class="coach-modal-overlay" id="coach-session-modal" onclick="if(event.target===this)closeCoachSessionModal()">
+    <div class="coach-session-modal-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button id="coach-session-back-btn" onclick="goBackToCoachSession()" style="display:none;background:none;border:none;color:var(--muted);font-size:26px;cursor:pointer;padding:0 8px 0 0;line-height:1;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">‹</button>
+          <div>
+            <div style="font-family:'Anton',sans-serif;font-size:18px;letter-spacing:0.5px" id="coach-session-modal-title">Session</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px" id="coach-session-modal-subtitle"></div>
+          </div>
+        </div>
+        <button onclick="closeCoachSessionModal()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:4px 0 4px 8px;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">×</button>
+      </div>
+      <div style="overflow-y:auto;flex:1" id="coach-session-modal-body"></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script>
     let coachData = null;
     let clientData = null;
@@ -715,6 +771,9 @@
     let clientPhotos = [];
     let workoutSessions = [];
     let phaseHistory = [];
+    let coachHistOpen = {};
+    let coachSessionDetailLogId = null;
+    let coachExHistChart = null;
 
     const STORAGE_URL = 'https://oboeavvjrtuzeovrjsht.supabase.co/storage/v1/object/public/progress-photos';
 
@@ -781,11 +840,21 @@
 
         const [setsRes, daysRes] = await Promise.all([
           db.from('set_logs').select('*').in('workout_log_id', logIds),
-          db.from('programme_days').select('id, label, day_number, week_number').in('id', dayIds),
+          db.from('programme_days').select('id, label, day_number, week_id').in('id', dayIds),
         ]);
 
         const sets = setsRes.data || [];
         const days = daysRes.data || [];
+
+        // Fetch week_number from programme_weeks and merge in
+        if (days.length) {
+          const weekIds = [...new Set(days.map(d => d.week_id).filter(Boolean))];
+          if (weekIds.length) {
+            const { data: weekRows } = await db.from('programme_weeks').select('id, week_number').in('id', weekIds);
+            const weekMap = Object.fromEntries((weekRows || []).map(w => [w.id, w.week_number]));
+            days.forEach(d => { d.week_number = weekMap[d.week_id] ?? null; });
+          }
+        }
 
         // Get exercise names
         const exIds = [...new Set(sets.map(s => s.block_exercise_id).filter(Boolean))];
@@ -1464,140 +1533,209 @@
       document.getElementById('workout-session-count').textContent =
         `${workoutSessions.length} session${workoutSessions.length !== 1 ? 's' : ''}`;
 
-      // Build e1RM progression per exercise across all sessions
-      const e1rmHistory = {}; // { exerciseName: [{date, e1rm}] }
-      workoutSessions.forEach(session => {
-        (session.set_logs || []).forEach(sl => {
-          const name = sl.block_exercises?.exercise_name;
-          if (!name || !sl.e1rm) return;
-          if (!e1rmHistory[name]) e1rmHistory[name] = [];
-          // Only keep best e1rm per exercise per session
-          const existing = e1rmHistory[name].find(x => x.date === session.log_date);
-          if (!existing) {
-            e1rmHistory[name].push({ date: session.log_date, e1rm: sl.e1rm });
-          } else if (sl.e1rm > existing.e1rm) {
-            existing.e1rm = sl.e1rm;
-          }
-        });
+      const currentProg = programmes.find(p => p.id === clientData.programme_id);
+      const progName    = currentProg?.name || 'Programme';
+
+      // Group sessions by week_number
+      const byWeek = {};
+      workoutSessions.forEach(s => {
+        const wn = s.programme_days?.week_number ?? 0;
+        if (!byWeek[wn]) byWeek[wn] = [];
+        byWeek[wn].push(s);
       });
 
-      // Merge all workout_logs by date into one card per day
-      const byDate = {};
-      workoutSessions.forEach(session => {
-        const date = session.log_date;
-        if (!byDate[date]) {
-          byDate[date] = {
-            date,
-            label: session.programme_days?.label || 'Workout',
-            sets: [],
-          };
-        }
-        byDate[date].sets.push(...(session.set_logs || []));
-      });
+      const weekNums = Object.keys(byWeek).map(Number).sort((a, b) => b - a);
 
-      const mergedSessions = Object.values(byDate)
-        .sort((a, b) => b.date.localeCompare(a.date));
-
-      const sessionsHtml = mergedSessions.map((session, i) => {
-        const sets = session.sets;
-
-        // Group sets by exercise
-        const byExercise = {};
-        sets.forEach(sl => {
-          const name = sl.block_exercises?.exercise_name || 'Unknown';
-          if (!byExercise[name]) byExercise[name] = [];
-          byExercise[name].push(sl);
-        });
-
-        const exercisesHtml = Object.entries(byExercise).map(([name, exSets]) => {
-          const sortedSets = [...exSets].sort((a,b) => a.set_number - b.set_number);
-          const allE1rms   = (e1rmHistory[name] || []).map(x => x.e1rm);
-          const maxE1rm    = Math.max(...allE1rms);
-
-          const rows = sortedSets.map(sl => {
-            const isPb = sl.e1rm && sl.e1rm >= maxE1rm && allE1rms.length > 1;
-            return `<tr>
-              <td>Set ${sl.set_number}</td>
-              <td><strong>${sl.weight_kg}kg</strong></td>
-              <td>${sl.reps_completed} reps</td>
-              <td class="e1rm-cell">${sl.e1rm ? sl.e1rm + 'kg' : '—'}${isPb ? '<span class="pb-badge">PB</span>' : ''}</td>
-            </tr>`;
-          }).join('');
-
-          return `<div class="ex-block">
-            <div class="ex-name">${esc(name)}</div>
-            <table class="sets-table">
-              <thead><tr><th>Set</th><th>Weight</th><th>Reps</th><th>e1RM</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
+      const weekHtml = weekNums.map(wn => {
+        const sessions   = [...byWeek[wn]].sort((a, b) => b.log_date.localeCompare(a.log_date));
+        const isOpen     = !!coachHistOpen[wn];
+        const sessionRows = sessions.map(s => {
+          const label = s.programme_days?.label || 'Workout';
+          const nSets = s.set_logs?.length || 0;
+          const vol   = (s.set_logs || []).reduce((acc, sl) => acc + (sl.weight_kg * sl.reps_completed || 0), 0);
+          return `<div class="coach-hist-session-row" onclick="openCoachSessionDetail('${s.id}')">
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:500">${esc(label)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">${nSets} sets${vol ? ' · ' + Math.round(vol).toLocaleString() + 'kg vol' : ''}</div>
+            </div>
+            <div style="font-size:12px;color:var(--muted)">${formatDateShort(s.log_date)}</div>
+            <div style="color:var(--subtle);margin-left:8px;font-size:14px">›</div>
           </div>`;
         }).join('');
 
-        const totalSets = sets.length;
-        const totalVol  = sets.reduce((s, sl) => s + (sl.weight_kg * sl.reps_completed || 0), 0);
-
-        return `<div class="session-card">
-          <div class="session-header" onclick="toggleSession(${i})">
-            <div>
-              <div class="session-date">${formatDate(session.date)}</div>
-              <div class="session-label">${esc(session.label)}</div>
-              <div class="session-meta">${totalSets} sets · ${Math.round(totalVol).toLocaleString()}kg volume</div>
-            </div>
-            <div class="session-chevron" id="chev-${i}">›</div>
+        return `<div class="coach-hist-week">
+          <div class="coach-hist-week-hdr ${isOpen ? 'open' : ''}" onclick="toggleCoachWeek(${wn})">
+            <span>Week ${wn || '?'}</span>
+            <span class="coach-hist-wk-count">${sessions.length} session${sessions.length !== 1 ? 's' : ''}</span>
+            <span class="coach-hist-chevron">▼</span>
           </div>
-          <div class="session-body" id="session-body-${i}">
-            ${exercisesHtml || '<div style="color:var(--subtle);font-size:13px">No sets logged.</div>'}
+          <div class="coach-hist-sessions ${isOpen ? 'open' : ''}" id="chist-sessions-${wn}">
+            ${sessionRows}
           </div>
         </div>`;
       }).join('');
 
-      // Progression section — exercises with 3+ data points
-      const progExercises = Object.entries(e1rmHistory)
-        .filter(([, data]) => data.length >= 3)
-        .sort((a, b) => b[1].length - a[1].length)
-        .slice(0, 5);
-
-      let progHtml = '';
-      if (progExercises.length) {
-        const charts = progExercises.map(([name, data]) => {
-          const sorted = [...data].sort((a,b) => a.date.localeCompare(b.date));
-          const vals   = sorted.map(d => d.e1rm);
-          const min    = Math.min(...vals);
-          const max    = Math.max(...vals);
-          const range  = max - min || 1;
-          const W = 280, H = 50, P = 6;
-          const pts = vals.map((v, i) => {
-            const x = P + (i / (vals.length - 1)) * (W - P * 2);
-            const y = H - P - ((v - min) / range) * (H - P * 2);
-            return `${x},${y}`;
-          });
-          const trend   = vals[vals.length - 1] > vals[0] ? 'var(--green)' : vals[vals.length - 1] < vals[0] ? '#e74c3c' : 'var(--muted)';
-          const lastPt  = pts[pts.length - 1].split(',');
-          return `<div class="prog-exercise">
-            <div class="prog-ex-name">${esc(name)} <span style="font-size:11px;color:var(--muted);font-weight:400">— best e1RM: ${Math.max(...vals)}kg</span></div>
-            <div class="prog-chart-wrap">
-              <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">
-                <polyline points="${pts.join(' ')}" fill="none" stroke="${trend}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="${trend}"/>
-              </svg>
-            </div>
-          </div>`;
-        }).join('');
-
-        progHtml = `<div class="prog-section">
-          <div class="prog-title">Strength Progression (e1RM)</div>
-          ${charts}
-        </div>`;
-      }
-
-      wrap.innerHTML = progHtml + sessionsHtml;
+      wrap.innerHTML = `
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">${esc(progName)}</div>
+        ${weekHtml}
+      `;
     }
 
-    function toggleSession(i) {
-      const body = document.getElementById(`session-body-${i}`);
-      const chev = document.getElementById(`chev-${i}`);
-      body.classList.toggle('open');
-      chev.classList.toggle('open');
+    function toggleCoachWeek(wn) {
+      coachHistOpen[wn] = !coachHistOpen[wn];
+      const body = document.getElementById(`chist-sessions-${wn}`);
+      const hdr  = body?.previousElementSibling;
+      if (hdr)  hdr.classList.toggle('open', coachHistOpen[wn]);
+      if (body) body.classList.toggle('open', coachHistOpen[wn]);
+    }
+
+    function openCoachSessionDetail(logId) {
+      coachSessionDetailLogId = logId;
+      document.getElementById('coach-session-back-btn').style.display = 'none';
+
+      const session = workoutSessions.find(s => s.id === logId);
+      if (!session) return;
+
+      const label   = session.programme_days?.label || 'Workout';
+      const weekNum = session.programme_days?.week_number;
+      const dayNum  = session.programme_days?.day_number;
+
+      document.getElementById('coach-session-modal-title').textContent = label;
+      document.getElementById('coach-session-modal-subtitle').textContent =
+        [weekNum != null ? `Week ${weekNum}` : null, dayNum ? `Day ${dayNum}` : null, formatDate(session.log_date)]
+        .filter(Boolean).join(' · ');
+
+      // Group sets by exercise
+      const byEx = {};
+      (session.set_logs || []).forEach(sl => {
+        const name = sl.block_exercises?.exercise_name || 'Unknown';
+        if (!byEx[name]) byEx[name] = [];
+        byEx[name].push(sl);
+      });
+
+      const exHtml = Object.entries(byEx).map(([name, slogs]) => {
+        const sorted = [...slogs].sort((a, b) => a.set_number - b.set_number);
+        const rows = sorted.map(sl => `<tr>
+          <td style="padding:5px 10px 5px 0;color:var(--subtle);font-size:11px;font-weight:600">Set ${sl.set_number}</td>
+          <td style="padding:5px 10px 5px 0;font-size:13px;font-weight:600">${sl.weight_kg != null ? sl.weight_kg + 'kg' : '—'}</td>
+          <td style="padding:5px 10px 5px 0;font-size:13px">${sl.reps_completed} reps</td>
+          <td style="padding:5px 0;font-size:12px;color:var(--muted)">${sl.e1rm ? sl.e1rm + 'kg e1RM' : '—'}</td>
+        </tr>`).join('');
+        return `<div class="coach-session-ex-card" onclick="openCoachExHistory(${JSON.stringify(name)})">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--orange)">${esc(name)}</div>
+            <div style="font-size:11px;color:var(--subtle)">History ›</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="font-size:10px;font-weight:600;color:var(--muted);text-align:left;padding:3px 10px 6px 0;border-bottom:1px solid var(--border)">Set</th>
+              <th style="font-size:10px;font-weight:600;color:var(--muted);text-align:left;padding:3px 10px 6px 0;border-bottom:1px solid var(--border)">Weight</th>
+              <th style="font-size:10px;font-weight:600;color:var(--muted);text-align:left;padding:3px 10px 6px 0;border-bottom:1px solid var(--border)">Reps</th>
+              <th style="font-size:10px;font-weight:600;color:var(--muted);text-align:left;padding:3px 0 6px 0;border-bottom:1px solid var(--border)">e1RM</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      }).join('');
+
+      document.getElementById('coach-session-modal-body').innerHTML = exHtml ||
+        '<div style="text-align:center;padding:30px;color:var(--subtle);font-size:13px">No sets logged in this session.</div>';
+
+      document.getElementById('coach-session-modal').classList.add('open');
+    }
+
+    function closeCoachSessionModal() {
+      document.getElementById('coach-session-modal').classList.remove('open');
+      if (coachExHistChart) { coachExHistChart.destroy(); coachExHistChart = null; }
+      coachSessionDetailLogId = null;
+    }
+
+    function goBackToCoachSession() {
+      if (coachExHistChart) { coachExHistChart.destroy(); coachExHistChart = null; }
+      openCoachSessionDetail(coachSessionDetailLogId);
+    }
+
+    function openCoachExHistory(exerciseName) {
+      document.getElementById('coach-session-back-btn').style.display = 'inline-block';
+      document.getElementById('coach-session-modal-title').textContent = exerciseName;
+      document.getElementById('coach-session-modal-subtitle').textContent = 'e1RM progression';
+
+      // Collect best e1rm per session for this exercise
+      const bySession = [];
+      workoutSessions.forEach(s => {
+        const slogs = (s.set_logs || []).filter(sl => sl.block_exercises?.exercise_name === exerciseName && sl.e1rm);
+        if (!slogs.length) return;
+        const bestE1rm = Math.max(...slogs.map(sl => sl.e1rm));
+        bySession.push({
+          date:    s.log_date,
+          label:   s.programme_days?.label || 'Workout',
+          weekNum: s.programme_days?.week_number,
+          bestE1rm,
+          sets:    [...slogs].sort((a, b) => a.set_number - b.set_number),
+        });
+      });
+      bySession.sort((a, b) => a.date.localeCompare(b.date));
+
+      const body = document.getElementById('coach-session-modal-body');
+
+      if (!bySession.length) {
+        body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--subtle);font-size:13px">No e1RM data for this exercise yet.</div>';
+        return;
+      }
+
+      const sessionCards = [...bySession].reverse().map(s => {
+        const rows = s.sets.map(sl => `<tr>
+          <td style="padding:4px 10px 4px 0;color:var(--subtle);font-size:11px">Set ${sl.set_number}</td>
+          <td style="padding:4px 10px 4px 0;font-size:13px;font-weight:600">${sl.weight_kg != null ? sl.weight_kg + 'kg' : '—'}</td>
+          <td style="padding:4px 10px 4px 0;font-size:13px">${sl.reps_completed} reps</td>
+          <td style="padding:4px 0;font-size:12px;color:var(--muted)">${sl.e1rm ? sl.e1rm + 'kg e1RM' : '—'}</td>
+        </tr>`).join('');
+        return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:600">${esc(s.label)}</div>
+              ${s.weekNum != null ? `<div style="font-size:11px;color:var(--muted)">Week ${s.weekNum}</div>` : ''}
+            </div>
+            <div style="font-size:12px;color:var(--muted)">${formatDateShort(s.date)}</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse"><tbody>${rows}</tbody></table>
+        </div>`;
+      }).join('');
+
+      body.innerHTML = `
+        <div style="margin-bottom:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <canvas id="coach-ex-hist-chart"></canvas>
+        </div>
+        ${sessionCards}
+      `;
+
+      if (coachExHistChart) { coachExHistChart.destroy(); coachExHistChart = null; }
+      const ctx = document.getElementById('coach-ex-hist-chart');
+      if (ctx && bySession.length >= 2) {
+        coachExHistChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: bySession.map(s => formatDateShort(s.date)),
+            datasets: [{
+              data:            bySession.map(s => s.bestE1rm),
+              borderColor:     '#2ECC8A',
+              backgroundColor: 'rgba(46,204,138,0.1)',
+              pointBackgroundColor: '#2ECC8A',
+              pointRadius:     4,
+              tension:         0.3,
+              fill:            true,
+            }],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: '#8892A4', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+              y: { ticks: { color: '#8892A4', font: { size: 10 }, callback: v => v + 'kg' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            },
+          },
+        });
+      }
     }
 
     // ---- Render Photos Section ----
