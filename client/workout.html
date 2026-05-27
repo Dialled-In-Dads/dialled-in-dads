@@ -1677,23 +1677,41 @@
       el.innerHTML = '<div class="loading-state">Loading history…</div>';
 
       if (!historyLogs) {
-        const { data, error } = await db
+        // Step 1: workout_logs + programme_days (1 level — reliable)
+        const { data: logs, error: logsErr } = await db
           .from('workout_logs')
           .select(`
             id, log_date, completed_at,
             programme_days!programme_day_id (
-              id, label, day_number,
-              programme_weeks!week_id (
-                week_number,
-                programmes!programme_id (id, name)
-              )
+              id, label, day_number, week_id
             )
           `)
           .eq('client_id', clientData.id)
           .order('log_date', { ascending: false });
 
-        if (error) { el.innerHTML = '<div class="loading-state">Error loading history.</div>'; return; }
-        historyLogs = data || [];
+        if (logsErr) { el.innerHTML = '<div class="loading-state">Error loading history.</div>'; return; }
+
+        // Step 2: fetch week + programme for all referenced week_ids
+        const weekIds = [...new Set(
+          (logs || []).filter(l => l.programme_days?.week_id).map(l => l.programme_days.week_id)
+        )];
+
+        const weekLookup = {};
+        if (weekIds.length) {
+          const { data: weeks } = await db
+            .from('programme_weeks')
+            .select('id, week_number, programmes!programme_id(id, name)')
+            .in('id', weekIds);
+          (weeks || []).forEach(w => { weekLookup[w.id] = w; });
+        }
+
+        // Merge week/programme into each log as _week
+        historyLogs = (logs || []).map(l => {
+          if (l.programme_days?.week_id) {
+            l.programme_days._week = weekLookup[l.programme_days.week_id] || null;
+          }
+          return l;
+        });
       }
 
       if (!historyLogs.length) {
@@ -1704,16 +1722,16 @@
         return;
       }
 
-      const progLogs = historyLogs.filter(l => l.programme_days);
-      const freeLogs = historyLogs.filter(l => !l.programme_days);
+      const progLogs = historyLogs.filter(l => l.programme_days?._week);
+      const freeLogs = historyLogs.filter(l => !l.programme_days?._week);
 
       // Group programme logs: programme → week number → sessions
       const byProg = {};
       progLogs.forEach(log => {
-        const pw   = log.programme_days.programme_weeks;
-        const prog = pw.programmes;
+        const week = log.programme_days._week;
+        const prog = week.programmes;
         if (!byProg[prog.id]) byProg[prog.id] = { id: prog.id, name: prog.name, weeks: {} };
-        const wk = pw.week_number;
+        const wk = week.week_number;
         if (!byProg[prog.id].weeks[wk]) byProg[prog.id].weeks[wk] = [];
         byProg[prog.id].weeks[wk].push(log);
       });
@@ -1793,7 +1811,7 @@
       if (log) {
         const pd = log.programme_days;
         titleEl.textContent = pd?.label || 'Free Session';
-        const wk = pd?.programme_weeks?.week_number;
+        const wk = pd?._week?.week_number;
         subEl.textContent = (wk ? `Week ${wk} · ` : '') + histDate(log.log_date);
       }
 
@@ -1934,7 +1952,7 @@
       (historyLogs || []).forEach(l => {
         logLookup[l.id] = {
           date:    l.log_date,
-          weekNum: l.programme_days?.programme_weeks?.week_number,
+          weekNum: l.programme_days?._week?.week_number,
           label:   l.programme_days?.label,
         };
       });
